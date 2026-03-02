@@ -20,8 +20,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
       - name: 安裝必要套件
-        run: pip install selenium webdriver-manager beautifulsoup4
+        run: pip install selenium webdriver-manager beautifulsoup4 firebase-admin
       - name: 執行爬蟲
+        env:
+          FIREBASE_CONFIG: ${{ secrets.FIREBASE_CONFIG }}
         run: python bg.py
       - name: 儲存並推送到倉庫
         run: |
