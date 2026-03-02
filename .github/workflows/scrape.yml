@@ -2,7 +2,7 @@ name: Bingo Auto Scraper
 
 on:
   schedule:
-    - cron: '*/6 * * * *' # 這裡改為每 6 分鐘執行一次
+    - cron: '*/6 * * * *' # 每 6 分鐘執行一次
   workflow_dispatch:
 
 jobs:
@@ -11,24 +11,18 @@ jobs:
     steps:
       - name: 檢查程式碼
         uses: actions/checkout@v3
+
       - name: 設定 Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - name: 安裝瀏覽器環境
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
+
       - name: 安裝必要套件
+        # 這裡新增了 firebase-admin
         run: pip install selenium webdriver-manager beautifulsoup4 firebase-admin
-      - name: 執行爬蟲
+
+      - name: 執行爬蟲並推送到 Firebase
         env:
+          # 這裡會讀取您在 GitHub 設定的 Secret
           FIREBASE_CONFIG: ${{ secrets.FIREBASE_CONFIG }}
         run: python bg.py
-      - name: 儲存並推送到倉庫
-        run: |
-          git config --global user.name "BingoBot"
-          git config --global user.email "bot@github.com"
-          git add history.json
-          git commit -m "🤖 自動更新開獎數據" || exit 0
-          git push
