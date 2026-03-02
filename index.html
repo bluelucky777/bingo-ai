@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>數字 AI 分析儀 - Firebase 即時版</title>
+    <title>數字 AI 分析儀 - 即時更新版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
@@ -11,23 +11,32 @@
         .ball { width: 44px; height: 44px; font-size: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; position: relative; }
         sub { font-size: 0.7rem; position: absolute; bottom: 2px; right: 4px; font-weight: 900; }
         .limit-active { background-color: #4f46e5 !important; border-color: #818cf8 !important; box-shadow: 0 0 10px rgba(129, 140, 248, 0.4); }
+        /* 按鈕載入動畫 */
+        .loading-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-200 p-4 font-sans leading-relaxed">
     <div class="max-w-3xl mx-auto space-y-8">
         
-        <header class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex justify-between items-center shadow-lg">
-            <div>
-                <h1 class="text-2xl font-bold text-yellow-500">🎰 數字 AI 分析儀</h1>
+        <header class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4 shadow-lg">
+            <div class="flex-1">
+                <h1 class="text-2xl font-bold text-yellow-500 flex items-center gap-2">🎰 數字 AI 分析儀</h1>
                 <p id="cur-period" class="text-indigo-400 font-mono text-lg mt-1 tracking-tight">連線中...</p>
-                <p id="update-time" class="text-emerald-400 font-bold text-base mt-1 italic">等待雲端推送數據...</p>
+                <p id="update-time" class="text-emerald-400 font-bold text-base mt-1 italic">等待數據同步...</p>
             </div>
-            <div class="bg-indigo-900/50 text-indigo-300 px-4 py-2 rounded-lg border border-indigo-500/50 flex items-center gap-2">
-                <span class="relative flex h-3 w-3">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                </span>
-                <span class="font-bold text-lg">雲端即時同步中</span>
+            
+            <div class="flex flex-col items-end gap-3">
+                <button onclick="triggerScrape()" id="scrape-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-lg font-bold shadow-lg transition-all active:scale-95 flex items-center gap-2">
+                    <span id="btn-icon">🚀</span> <span id="btn-text">立即抓取最新開獎</span>
+                </button>
+                <div class="bg-indigo-900/30 text-indigo-300 px-3 py-1 rounded-full border border-indigo-500/30 flex items-center gap-2 text-xs">
+                    <span class="relative flex h-2 w-2">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    雲端即時同步中
+                </div>
             </div>
         </header>
 
@@ -99,16 +108,44 @@
         let currentLimit = 10;
         let strat = 'hot';
 
-        const nDefs = {
-            n1: "<b>N1 溫熱：</b>近 10 期高機率號碼。",
-            n2: "<b>N2 回歸：</b>近 10 期出現 2 次且近期未開。",
-            n3: "<b>N3 拖號：</b>根據上期推薦的拖牌。",
-            n4: "<b>N4 共伴：</b>高共伴率組合。",
-            n5: "<b>N5 破冰：</b>連續最久未開號碼。",
-            n6: "<b>N6 未開小號：</b>近 2 期未開之 1~10。",
-            n7: "<b>N7 5熱：</b>近 5 期內強勢號碼。"
-        };
+        // 1. 新增：觸發 Netlify Serverless 抓取函式
+        async function triggerScrape() {
+            const btn = document.getElementById('scrape-btn');
+            const icon = document.getElementById('btn-icon');
+            const text = document.getElementById('btn-text');
+            
+            // 設定為載入狀態
+            btn.disabled = true;
+            btn.classList.add('opacity-70', 'cursor-not-allowed');
+            icon.innerText = "⏳";
+            icon.classList.add('loading-spin');
+            text.innerText = "正在抓取中...";
 
+            try {
+                // 呼叫您剛剛在 Netlify 設定的 Function 路徑
+                const response = await fetch('/.netlify/functions/scrape');
+                const result = await response.json();
+                
+                if (result.status === "success") {
+                    console.log("✅ 雲端抓取指令發送成功");
+                    // 不需要手動更新畫面，Firebase Realtime Listener 會自動感應到資料庫變動
+                } else {
+                    alert("抓取失敗：" + (result.message || "未知錯誤"));
+                }
+            } catch (err) {
+                console.error(err);
+                alert("連線失敗，請確認已在 Netlify 環境運行");
+            } finally {
+                // 恢復按鈕狀態
+                btn.disabled = false;
+                btn.classList.remove('opacity-70', 'cursor-not-allowed');
+                icon.innerText = "🚀";
+                icon.classList.remove('loading-spin');
+                text.innerText = "立即抓取最新開獎";
+            }
+        }
+
+        // Firebase 實時監聽 (保持不變)
         function initRealtimeSync() {
             const dataRef = database.ref('bingo_data');
             dataRef.on('value', (snapshot) => {
@@ -118,23 +155,17 @@
                     document.getElementById('cur-period').innerText = `最新期數：${fullHistory[0].period}`;
                     document.getElementById('update-time').innerText = "最後更新時間：" + (data.last_update || "未知");
                     renderAll();
-                } else {
-                    document.getElementById('cur-period').innerText = "尚未有開獎數據";
-                    document.getElementById('update-time').innerText = "請執行 GitHub Actions 爬蟲以推送數據";
                 }
-            }, (error) => {
-                document.getElementById('cur-period').innerText = "Firebase 連線失敗";
-                console.error(error);
             });
         }
 
+        // ... 以下為原有的 render 邏輯 (renderAll, calculateNGroups 等) 保持不變 ...
         function renderAll() {
             if (!fullHistory.length) return;
             const history = fullHistory.slice(0, currentLimit);
             const numsOnly = history.map(h => h.numbers);
             let counts = {};
             numsOnly.flat().forEach(n => counts[n] = (counts[n] || 0) + 1);
-            
             const groups = calculateNGroups(history, counts);
             renderPrediction(counts, groups);
             renderStrategies(history, groups);
@@ -150,14 +181,12 @@
             const last2 = history[0].numbers.concat(history[1] ? history[1].numbers : []);
             const counts5 = {};
             history.slice(0, 5).map(h => h.numbers).flat().forEach(n => counts5[n] = (counts5[n]||0)+1);
-
             const n1 = all.filter(n => counts[n] >= 2 && counts[n] <= 3);
             const n2 = all.filter(n => counts[n] === 2 && !last.includes(n));
             const n3 = Array.from(new Set(last.slice(0, 5).flatMap(n => [((parseInt(n)+1)%80||80).toString().padStart(2, '0')])));
             const n5 = all.sort((a, b) => fullHistory.findIndex(h => h.numbers.includes(a)) - fullHistory.findIndex(h => h.numbers.includes(b))).reverse().slice(0, 15);
             const n6 = all.filter(n => parseInt(n) <= 10 && !last2.includes(n));
             const n7 = all.filter(n => counts5[n] >= 2);
-
             const rnd = (arr) => arr.sort(() => 0.5 - Math.random()).slice(0, 10);
             return {
                 n1: rnd(n1).map(n => ({num: n, count: counts[n]||0})),
@@ -182,7 +211,6 @@
             if (strat === 'hot') res = [...pick(high.map(n=>({num:n})), 2), ...pick(groups.n3, 2), ...pick(groups.n7, 2)];
             else if (strat === 'balanced') res = [...pick(high.map(n=>({num:n})), 1), ...pick(groups.n3, 1), ...pick(groups.n2, 2), ...pick(groups.n6, 2)];
             else res = [...pick(high.map(n=>({num:n})), 1), ...pick(groups.n6, 2), ...pick(groups.n5, 1), ...pick(groups.n7, 2)];
-
             document.getElementById('pred-box').innerHTML = res.map(i => `<div class="ball bg-gradient-to-tr from-yellow-400 to-yellow-600 text-slate-900 shadow-xl">${i.num}<sub>.${i.count}</sub></div>`).join('');
         }
 
@@ -199,6 +227,15 @@
         }
 
         function renderNGroups(groups) {
+            const nDefs = {
+                n1: "<b>N1 溫熱：</b>近 10 期高機率號碼。",
+                n2: "<b>N2 回歸：</b>近 10 期出現 2 次且近期未開。",
+                n3: "<b>N3 拖號：</b>根據上期推薦的拖牌。",
+                n4: "<b>N4 共伴：</b>高共伴率組合。",
+                n5: "<b>N5 破冰：</b>連續最久未開號碼。",
+                n6: "<b>N6 未開小號：</b>近 2 期未開之 1~10。",
+                n7: "<b>N7 5熱：</b>近 5 期內強勢號碼。"
+            };
             document.getElementById('n-groups').innerHTML = Object.entries(nDefs).map(([k, def]) => `<div class="border-b border-slate-700 pb-4"><p class="text-emerald-300 mb-2">${def}</p><div class="flex flex-wrap gap-x-4">${groups[k].map(i => `<span class="text-slate-300 font-bold text-xl">${i.num}<sub>.${i.count}</sub></span>`).join('')}</div></div>`).join('');
         }
 
