@@ -132,9 +132,9 @@
                 } else {
                     alert("抓取失敗：" + (result.message || "未知錯誤"));
                 }
-            } catch (err) {
-                console.error(err);
-                alert("連線失敗，請確認已在 Netlify 環境運行");
+            } catch (error) {
+                console.error("詳細錯誤資訊:", error);
+                alert("連線失敗！原因：" + error.message + "\n請檢查 Netlify 後台 Function Logs。");
             } finally {
                 // 恢復按鈕狀態
                 btn.disabled = false;
