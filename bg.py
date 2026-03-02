@@ -60,8 +60,8 @@ def fetch_bingo_now():
             if len(found_nums) >= 20:
                 new_records.append({"period": period, "numbers": found_nums[:20]})
 
+        # ... 爬蟲邏輯 ...
         if new_records:
-            # 2. 推送到 Firebase 雲端資料庫
             ref = db.reference('bingo_data')
             data_to_save = {
                 "last_update": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
