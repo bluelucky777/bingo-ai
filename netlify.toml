@@ -1,6 +1,5 @@
 [build]
-  command = "pip install -r requirements.txt"
   publish = "."
 
 [functions]
-  directory = "netlify/functions"  # 確保這行對準資料夾
+  directory = "netlify/functions"
