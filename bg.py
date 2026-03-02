@@ -11,56 +11,55 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 
-# 1. Firebase 初始化設定
-# 從 GitHub Secrets 讀取您上傳的私密金鑰 JSON
+# Firebase 初始化
 cred_json_str = os.environ.get('FIREBASE_CONFIG')
 if not cred_json_str:
-    print("❌ 錯誤：找不到 FIREBASE_CONFIG 環境變數，請檢查 GitHub Secrets。")
+    print("❌ 錯誤：找不到 FIREBASE_CONFIG")
     exit(1)
 
 cred = credentials.Certificate(json.loads(cred_json_str))
-firebase_admin.initialize_app(cred, {
-    'databaseURL': 'https://bingo-ai-360ad-default-rtdb.firebaseio.com' # 已為您填寫
-})
-
-MAX_HISTORY = 10
+if not firebase_admin._apps:
+    firebase_admin.initialize_app(cred, {'databaseURL': 'https://bingo-ai-360ad-default-rtdb.firebaseio.com'})
 
 def fetch_bingo_now():
     chrome_options = Options()
-    chrome_options.add_argument("--headless=new") # 雲端執行必須開啟
+    chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
+    # 模擬真實瀏覽器，避免被擋
+    chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
     
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-    url = "https://lotto.auzonet.com/bingobingoV1.php"
     
     try:
         print(f"🚀 啟動爬蟲任務...")
-        driver.get(url)
-        time.sleep(12) # 等待數據載入
+        driver.get("https://lotto.auzonet.com/bingobingoV1.php")
+        time.sleep(15) # 增加等待時間，確保網頁跑完
         
         soup = BeautifulSoup(driver.page_source, "html.parser")
         driver.quit()
         
         new_records = []
-        rows = soup.find_all("tr", class_=re.compile(r"list_tr|list_tr2")) # 抓取開獎行
-
+        # 修改解析邏輯，增加穩定性
+        rows = soup.find_all("tr") 
         for row in rows:
-            if len(new_records) >= MAX_HISTORY: break
-            cols = row.find_all("td")
-            if len(cols) < 2: continue
+            text = row.get_text()
+            if "期序" in text or "開獎號碼" in text: continue
             
-            period_match = re.search(r'(\d{9,10})', cols[0].get_text())
-            if not period_match: continue
-            period = period_match.group(1)
+            period_match = re.search(r'(\d{9,10})', text)
+            if period_match:
+                period = period_match.group(1)
+                # 抓取該行內所有的數字球
+                nums = re.findall(r'(\d{2})', str(row))
+                # 過濾出真正的 20 個號碼
+                valid_nums = sorted(list(set([n for n in nums if 1 <= int(n) <= 80])))[:20]
+                
+                if len(valid_nums) >= 20:
+                    new_records.append({"period": period, "numbers": valid_nums})
+            if len(new_records) >= 10: break
 
-            cell_html = str(cols[1])
-            found_nums = sorted(list(set(re.findall(r'[nN][bB](\d{2})', cell_html))))
-            
-            if len(found_nums) >= 20:
-                new_records.append({"period": period, "numbers": found_nums[:20]})
+        print(f"🔎 抓取結果：共找到 {len(new_records)} 筆資料")
 
-        # ... 爬蟲邏輯 ...
         if new_records:
             ref = db.reference('bingo_data')
             data_to_save = {
@@ -68,11 +67,13 @@ def fetch_bingo_now():
                 "records": new_records
             }
             ref.set(data_to_save)
-            print(f"🔥 Firebase 同步成功！時間：{data_to_save['last_update']}")
+            print(f"🔥 Firebase 同步成功！最後更新：{data_to_save['last_update']}")
             return True
-        return False
+        else:
+            print("⚠️ 警告：抓取完成但沒找到任何號碼，可能是網頁結構改變或被擋。")
+            return False
     except Exception as e:
-        print(f"⚠️ 發生錯誤: {e}")
+        print(f"⚠️ 發生異常錯誤: {e}")
         return False
 
 if __name__ == "__main__":
