@@ -62,19 +62,17 @@ def run_scraper():
 
 # 3. Netlify Function 必須的進入點 (Handler)
 def handler(event, context):
-    if not initialize_firebase():
+    # 這裡放你爬蟲的邏輯
+    try:
+        # 假設這是你的執行結果
+        data = {"status": "success", "message": "已更新"} 
+        return {
+            "statusCode": 200,
+            "headers": {"Content-Type": "application/json"},
+            "body": json.dumps(data)
+        }
+    except Exception as e:
         return {
             "statusCode": 500,
-            "body": json.dumps({"error": "Firebase initialization failed"})
+            "body": json.dumps({"error": str(e)})
         }
-
-    result = run_scraper()
-    
-    return {
-        "statusCode": 200,
-        "headers": {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*" # 解決跨網域問題
-        },
-        "body": json.dumps(result)
-    }
