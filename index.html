@@ -2,11 +2,11 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>數字 AI 分析</title>
+    <title>數字 AI 分析儀 - 雲端版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 強制全站基礎字體至少 16px */
-        html, body { font-size: 16px; }
+        /* 強制全站基礎字體至少 16px，確保易讀性 */
+        html, body { font-size: 16px; } 
         .ball { width: 44px; height: 44px; font-size: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; position: relative; }
         sub { font-size: 0.7rem; position: absolute; bottom: 2px; right: 4px; font-weight: 900; }
         .limit-active { background-color: #4f46e5 !important; border-color: #818cf8 !important; box-shadow: 0 0 10px rgba(129, 140, 248, 0.4); }
@@ -17,9 +17,9 @@
         
         <header class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex justify-between items-center shadow-lg">
             <div>
-                <h1 class="text-2xl font-bold text-yellow-500"> 數字 AI 分析</h1>
-                <p id="cur-period" class="text-indigo-400 font-mono text-lg mt-1 tracking-tight">正在載入雲端數據...</p>
-                <p class="text-indigo-300 mt-2 text-sm italic">※ 以上數據僅供參考，不保證其完整性或準確性。</p>
+                <h1 class="text-2xl font-bold text-yellow-500">🎰 數字 AI 分析儀</h1>
+                <p id="cur-period" class="text-indigo-400 font-mono text-lg mt-1 tracking-tight">正在連線雲端...</p>
+                <p id="update-time" class="text-emerald-400 font-bold text-base mt-1 italic">最後更新：讀取中...</p>
             </div>
             <button onclick="loadData()" id="refresh-btn" class="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-lg font-bold shadow-lg text-lg transition-all active:scale-95">
                 🔄 刷新最新數據
@@ -27,7 +27,7 @@
         </header>
 
         <div class="bg-slate-800 p-6 rounded-2xl border-l-8 border-indigo-400 shadow-xl">
-            <h3 class="text-xl font-bold text-indigo-300 mb-4 flex items-center gap-2">核心數據分析範圍 (期數切換)</h3>
+            <h3 class="text-xl font-bold text-indigo-300 mb-4 flex items-center gap-2">數據分析範圍 (期數切換)</h3>
             <div class="flex flex-wrap items-center gap-4 text-lg">
                 <button onclick="changeLimit(5)" id="btn-limit-5" class="limit-btn bg-slate-700 px-6 py-2 rounded-lg font-bold hover:bg-indigo-600 transition-all border border-transparent">近 5 期</button>
                 <button onclick="changeLimit(10)" id="btn-limit-10" class="limit-btn limit-active px-6 py-2 rounded-lg font-bold border">近 10 期</button>
@@ -45,33 +45,33 @@
         </div>
 
         <div class="bg-slate-800 p-8 rounded-2xl border-t-8 border-yellow-500 shadow-2xl">
-            <h2 class="text-xl font-bold text-yellow-500 mb-6 text-center tracking-widest">🔮 AI 核心預測 (6球模式) （人為定義 ai任選球）</h2>
+            <h2 class="text-xl font-bold text-yellow-500 mb-6 text-center tracking-widest">🔮 AI 核心預測 (6球模式)</h2>
             <div id="pred-box" class="flex justify-around mb-8"></div>
             <div class="grid grid-cols-3 gap-4">
-                <button onclick="setStrat('hot')" id="btn-hot" class="strat-btn bg-orange-600 p-4 rounded-xl font-bold text-lg">🔥 追熱門</button>
+                <button onclick="setStrat('hot')" id="btn-hot" class="strat-btn bg-orange-600 p-4 rounded-xl font-bold text-lg ring-4 ring-white/50">🔥 追熱門</button>
                 <button onclick="setStrat('balanced')" id="btn-balanced" class="strat-btn bg-emerald-600 p-4 rounded-xl font-bold text-lg">⚖️ 均衡</button>
                 <button onclick="setStrat('luck')" id="btn-luck" class="strat-btn bg-purple-600 p-4 rounded-xl font-bold text-lg">🎲 拼運氣</button>
             </div>
         </div>
 
         <div class="bg-slate-800 p-6 rounded-xl border-l-8 border-yellow-500 shadow-lg">
-            <h3 class="text-xl font-bold text-yellow-500 mb-4">💡 攻略邏輯推薦 (網路爬的)</h3>
+            <h3 class="text-xl font-bold text-yellow-500 mb-4">💡 攻略邏輯推薦 (核心公式)</h3>
             <div id="strat-logic" class="space-y-4 text-lg"></div>
         </div>
 
         <div class="bg-slate-800 p-6 rounded-xl border-l-8 border-indigo-500 shadow-lg">
-            <h3 class="text-xl font-bold text-indigo-400 mb-4">⭐ 星級配號 (網路爬的)</h3>
+            <h3 class="text-xl font-bold text-indigo-400 mb-4">⭐ 星級配號 (2星-10星)</h3>
             <div id="star-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-lg"></div>
         </div>
 
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
-            <h3 class="text-xl font-bold text-emerald-400 mb-6">🔍 號碼屬性分析 (N1-N7 定義) (網路爬的)</h3>
+            <h3 class="text-xl font-bold text-emerald-400 mb-6">🔍 號碼屬性分析 (N1-N7 定義)</h3>
             <p class="text-indigo-300 mt-2 text-sm italic">※ 若欄位超過 10 個數字，系統將隨機顯示其中 10 個。</p>
             <div id="n-groups" class="space-y-6 text-lg"></div>
         </div>
 
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
-            <h3 class="text-xl font-bold text-slate-400 mb-4">📅 歷史數據清單 (當前範圍)</h3>
+            <h3 class="text-xl font-bold text-slate-400 mb-4">📅 近期歷史數據 (雲端同步)</h3>
             <div id="history-container" class="space-y-3"></div>
         </div>
     </div>
@@ -82,44 +82,46 @@
         let strat = 'hot';
 
         const nDefs = {
-            n1: "<b>N1 溫熱：</b>近 10 期高機率（出現 2~3 次）的號碼。",
-            n2: "<b>N2 回歸：</b>近 10 期出現 2 次且近期未開，具備回歸潛力。",
-            n3: "<b>N3 拖號：</b>根據上期開出號碼，歷史關聯機率最高的拖牌。",
-            n4: "<b>N4 共伴：</b>與當下已選核心號碼有極高共伴率的組合。",
-            n5: "<b>N5 破冰：</b>遺漏期數最長（連續最久未開）的極冷號。",
-            n6: "<b>N6 未開小號：</b>近 2 期皆未開出，且範圍鎖定在 1~10 之間的號碼。",
-            n7: "<b>N7 5熱：</b>近 5 期內出現頻率極高，短線極度強勢的號碼。"
+            n1: "<b>N1 溫熱：</b>近 10 期高機率（出現 2~3 次）號碼。",
+            n2: "<b>N2 回歸：</b>近 10 期出現 2 次且近期未開號碼。",
+            n3: "<b>N3 拖號：</b>根據上期推薦的拖牌號碼。",
+            n4: "<b>N4 共伴：</b>具備高共伴率組合。",
+            n5: "<b>N5 破冰：</b>連續最久未開出的號碼。",
+            n6: "<b>N6 未開小號：</b>近 2 期未開之 1~10 號碼。",
+            n7: "<b>N7 5熱：</b>近 5 期內強勢號碼。"
         };
 
-        // 修改後的 loadData：增加 timestamp 以強制刷新雲端檔案
         async function loadData() {
             const btn = document.getElementById('refresh-btn');
-            const periodDisplay = document.getElementById('cur-period');
+            const timeDisplay = document.getElementById('update-time');
             btn.innerText = "⏳ 讀取中...";
-            
             try {
-                // 使用 Date.now() 產生隨機參數，避開 GitHub Pages 的快取
+                // 強制跳過快取讀取最新 history.json
                 const res = await fetch('history.json?t=' + Date.now());
-                if (!res.ok) throw new Error('檔案讀取失敗');
-                fullHistory = await res.json();
+                const data = await res.json();
+                
+                // 相容新舊結構
+                fullHistory = data.records || data; 
+                timeDisplay.innerText = "最後更新時間：" + (data.last_update || "未知");
+                
                 renderAll();
                 btn.innerText = "🔄 刷新最新數據";
-            } catch (err) {
-                console.error(err);
-                periodDisplay.innerText = "數據尚未同步，請稍後再試...";
-                btn.innerText = "❌ 刷新失敗";
-                setTimeout(() => { btn.innerText = "🔄 刷新最新數據"; }, 3000);
+            } catch (e) {
+                document.getElementById('cur-period').innerText = "數據初始化中...";
+                btn.innerText = "🔄 重試刷新";
             }
         }
 
         function renderAll() {
-            if (!fullHistory.length) return;
+            if (!fullHistory || !fullHistory.length) return;
             const history = fullHistory.slice(0, currentLimit);
             const numsOnly = history.map(h => h.numbers);
-            const counts = getCounts(numsOnly);
-            const groups = getNGroups(history, counts);
-
-            document.getElementById('cur-period').innerText = `最新期數：${fullHistory[0].period} (分析範圍: ${history.length} 期)`;
+            let counts = {};
+            numsOnly.flat().forEach(n => counts[n] = (counts[n] || 0) + 1);
+            
+            const groups = calculateNGroups(history, counts);
+            
+            document.getElementById('cur-period').innerText = `最新期數：${fullHistory[0].period} (範圍: ${history.length} 期)`;
             document.getElementById('prob-title').innerText = `📈 近 ${history.length} 期 出現機率排行榜 (Top 10)`;
 
             renderPrediction(counts, groups);
@@ -130,17 +132,12 @@
             renderProbabilityRank(history);
         }
 
-        function getCounts(nums) {
-            let c = {};
-            nums.flat().forEach(n => c[n] = (c[n] || 0) + 1);
-            return c;
-        }
-
-        function getNGroups(history, counts) {
+        function calculateNGroups(history, counts) {
             const all = Array.from({length: 80}, (_, i) => (i+1).toString().padStart(2, '0'));
             const last = history[0].numbers;
             const last2 = history[0].numbers.concat(history[1] ? history[1].numbers : []);
-            const counts5 = getCounts(history.slice(0, 5).map(h => h.numbers));
+            const counts5 = {};
+            history.slice(0, 5).map(h => h.numbers).flat().forEach(n => counts5[n] = (counts5[n]||0)+1);
 
             const n1 = all.filter(n => counts[n] >= 2 && counts[n] <= 3);
             const n2 = all.filter(n => counts[n] === 2 && !last.includes(n));
@@ -170,34 +167,36 @@
 
         function renderPrediction(counts, groups) {
             let used = [];
-            const pick = (arr, c) => {
-                const pool = (arr[0]?.num ? arr.map(i => i.num) : arr).filter(n => !used.includes(n));
+            const pick = (g, c) => {
+                const pool = g.map(i => i.num || i).filter(n => !used.includes(n));
                 const res = pool.sort(() => 0.5 - Math.random()).slice(0, c);
                 used.push(...res);
-                return res.map(n => ({num: n, count: counts[n]||0}));
+                return res.map(n => ({num: n, count: counts[n] || 0}));
             };
             const high = Object.keys(counts).filter(n => counts[n] >= 3);
             let res = [];
-            if(strat === 'hot') res = [...pick(high, 2), ...pick(groups.n3, 2), ...pick(groups.n4, 1), ...pick(groups.n7, 1)];
-            else if(strat === 'balanced') res = [...pick(high, 1), ...pick(groups.n3, 1), ...pick(groups.n4, 1), ...pick(groups.n2, 2), ...pick(groups.n6, 1)];
+            if (strat === 'hot') res = [...pick(high, 2), ...pick(groups.n3, 2), ...pick(groups.n4, 1), ...pick(groups.n7, 1)];
+            else if (strat === 'balanced') res = [...pick(high, 1), ...pick(groups.n3, 1), ...pick(groups.n4, 1), ...pick(groups.n2, 2), ...pick(groups.n6, 1)];
             else res = [...pick(high, 1), ...pick(groups.n6, 2), ...pick(groups.n4, 1), ...pick(groups.n5, 1), ...pick(groups.n7, 1)];
 
             document.getElementById('pred-box').innerHTML = res.map(i => `
-                <div class="ball bg-gradient-to-tr from-yellow-400 to-yellow-600 text-slate-900 shadow-xl">${i.num}<sub>.${i.count}</sub></div>`).join('');
+                <div class="ball bg-gradient-to-tr from-yellow-400 to-yellow-600 text-slate-900 shadow-xl">
+                    ${i.num}<sub>.${i.count}</sub>
+                </div>`).join('');
         }
 
         function renderStars(groups) {
-            const pick = (k, c) => groups[k].map(i => i.num).sort(() => 0.5 - Math.random()).slice(0, c);
-            const s = {
-                "2星": pick('n1', 2),
-                "3星": pick('n1', 2).concat(pick('n5', 1)),
-                "4星": pick('n1', 2).concat(pick('n3', 1), pick('n5', 1)),
-                "5星": pick('n1', 2).concat(pick('n3', 2), pick('n5', 1)),
-                "6星": pick('n1', 3).concat(pick('n3', 2), pick('n5', 1))
+            const pickNum = (k, c) => groups[k].map(i => i.num).sort(() => 0.5 - Math.random()).slice(0, c);
+            const stars = {
+                "2星": pickNum('n1', 2),
+                "3星": pickNum('n1', 2).concat(pickNum('n5', 1)),
+                "4星": pickNum('n1', 2).concat(pickNum('n3', 1), pickNum('n5', 1)),
+                "5星": pickNum('n1', 2).concat(pickNum('n3', 2), pickNum('n5', 1)),
+                "6星": pickNum('n1', 3).concat(pickNum('n3', 2), pickNum('n5', 1))
             };
-            document.getElementById('star-list').innerHTML = Object.entries(s).map(([k,v]) => `
+            document.getElementById('star-list').innerHTML = Object.entries(stars).map(([k, v]) => `
                 <div class="bg-slate-900/50 p-3 rounded border border-slate-700 shadow-inner">
-                    <span class="text-indigo-300 font-bold">${k}:</span> <span class="font-mono">${v.join(', ')}</span>
+                    <span class="text-indigo-300 font-bold">${k}:</span> ${v.join(', ')}
                 </div>`).join('');
         }
 
@@ -221,8 +220,8 @@
             document.getElementById('n-groups').innerHTML = Object.entries(nDefs).map(([k, def]) => `
                 <div class="border-b border-slate-700 pb-4">
                     <p class="text-emerald-300 mb-2">${def}</p>
-                    <div class="flex flex-wrap gap-x-6">
-                        ${groups[k].map(i => `<span class="text-slate-300 font-bold text-xl">${i.num}<sub class="text-slate-500">.${i.count}</sub></span>`).join('')}
+                    <div class="flex flex-wrap gap-x-4">
+                        ${groups[k].map(i => `<span class="text-slate-300 font-bold text-xl">${i.num}<sub>.${i.count}</sub></span>`).join('')}
                     </div>
                 </div>`).join('');
         }
@@ -236,7 +235,8 @@
         }
 
         function renderProbabilityRank(history) {
-            const counts = getCounts(history.map(h => h.numbers));
+            let counts = {};
+            history.map(h => h.numbers).flat().forEach(n => counts[n] = (counts[n] || 0) + 1);
             const sorted = Object.entries(counts).map(([num, count]) => ({ num, count, prob: (count / history.length * 100).toFixed(0) + '%' }))
                 .sort((a, b) => b.count - a.count).slice(0, 10);
             document.getElementById('prob-rank').innerHTML = sorted.map((item, index) => `
@@ -248,13 +248,8 @@
 
         function changeLimit(l) { currentLimit = l; updateLimitUI(l); renderAll(); }
         function applyCustomLimit() { const v = document.getElementById('custom-limit').value; if (v > 0) { currentLimit = parseInt(v); updateLimitUI(null); renderAll(); } }
-        function updateLimitUI(l) { document.querySelectorAll('.limit-btn').forEach(btn => btn.classList.remove('limit-active')); if(l) document.getElementById(`btn-limit-${l}`).classList.add('limit-active'); }
-        function setStrat(s) { 
-            strat = s; 
-            document.querySelectorAll('.strat-btn').forEach(b => b.classList.remove('ring-4', 'ring-white/50'));
-            document.getElementById(`btn-${s}`).classList.add('ring-4', 'ring-white/50');
-            renderAll(); 
-        }
+        function updateLimitUI(l) { document.querySelectorAll('.limit-btn').forEach(b => b.classList.remove('limit-active')); if(l) document.getElementById(`btn-limit-${l}`).classList.add('limit-active'); }
+        function setStrat(s) { strat = s; document.querySelectorAll('.strat-btn').forEach(b => b.classList.remove('ring-4', 'ring-white/50')); document.getElementById('btn-' + s).classList.add('ring-4', 'ring-white/50'); renderAll(); }
         window.onload = loadData;
     </script>
 </body>
