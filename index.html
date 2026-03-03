@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>數字 AI 分析儀 - 屬性分析回歸版</title>
+    <title>數字 AI 分析儀 - 簡潔攻略版</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
@@ -14,15 +14,13 @@
         .limit-active { background-color: #4f46e5 !important; border-color: #818cf8 !important; box-shadow: 0 0 10px rgba(129, 140, 248, 0.4); }
         .count-active { background-color: #eab308 !important; border-color: #fde047 !important; color: #0f172a !important; transform: scale(1.05); box-shadow: 0 0 10px rgba(234, 179, 8, 0.4); }
         .expert-count-active { background-color: #38bdf8 !important; border-color: #7dd3fc !important; color: #0f172a !important; transform: scale(1.05); }
-        .use-strat-btn { font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; border: 1px solid #475569; transition: all 0.2s; }
-        .use-strat-btn:hover { background-color: #fca311; color: #14213d; border-color: #fca311; font-weight: bold; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-200 p-4 font-sans leading-relaxed">
     <div class="max-w-3xl mx-auto space-y-8">
         <header class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4 shadow-lg">
             <div class="flex-1">
-                <h1 class="text-2xl font-bold text-yellow-400 flex items-center gap-2"> 數字 AI 分析儀</h1>
+                <h1 class="text-2xl font-bold text-yellow-400 flex items-center gap-2">🎰 數字 AI 分析儀</h1>
                  <h3 class="text-sm font-bold text-red-400 mt-2">以上信息僅供參考，使用前請自行確認其準確性。使用者需自行承擔風險。</h3>
                 <p id="cur-period" class="text-indigo-400 font-mono text-lg mt-4 tracking-tight">連線中...</p>
                 <p id="update-time" class="text-emerald-400 font-bold text-base mt-1 italic">等待數據同步...</p>
@@ -66,9 +64,8 @@
         </div>
 
         <div class="bg-slate-800 p-8 rounded-2xl border-t-8 border-yellow-500 shadow-2xl">
-                    <h2 class="text-xl font-bold text-yellow-500 mb-2 text-center tracking-widest">🔮 AI 核心預測</h2>
-                    <p class="text-center text-slate-400 text-xs mb-6">小數點 是該x期內出現的次數 🔮科學的盡頭是玄學</p>
-                <div class="flex flex-wrap justify-center gap-2 mb-8">
+            <h2 class="text-xl font-bold text-yellow-500 mb-2 text-center tracking-widest">🔮 AI 核心預測</h2>
+            <div class="flex flex-wrap justify-center gap-2 mb-8">
                 <button onclick="changeBallCount(1)" id="btn-count-1" class="count-btn bg-slate-700 px-4 py-2 rounded-lg font-bold border">1球</button>
                 <button onclick="changeBallCount(2)" id="btn-count-2" class="count-btn bg-slate-700 px-4 py-2 rounded-lg font-bold border">2球</button>
                 <button onclick="changeBallCount(3)" id="btn-count-3" class="count-btn bg-slate-700 px-4 py-2 rounded-lg font-bold border">3球</button>
@@ -149,16 +146,13 @@
             });
         }
 
-        // 核心邏輯：計算各號碼屬性分組
         function calculateNGroups(history, counts) {
             const all = Array.from({length: 80}, (_, i) => (i+1).toString().padStart(2, '0'));
             const last = history[0].numbers;
             const last2 = history[0].numbers.concat(history[1] ? history[1].numbers : []);
             const counts5 = {};
             fullHistory.slice(0, 5).map(h => h.numbers).flat().forEach(n => counts5[n] = (counts5[n]||0)+1);
-
             const rnd = (arr) => shuffle([...arr]).slice(0, 10);
-            
             return {
                 n1: rnd(all.filter(n => counts[n] >= 2)).map(n => ({num: n, count: counts[n]})),
                 n2: rnd(all.filter(n => counts[n] === 2 && !last.includes(n))).map(n => ({num: n, count: counts[n]})),
@@ -181,7 +175,7 @@
             renderProbabilityRank(counts);
             renderStrategies(history, counts);
             renderPrediction(counts);
-            renderNGroups(groups); // 執行屬性分析渲染
+            renderNGroups(groups);
             renderHistoryList(history);
         }
 
@@ -206,97 +200,72 @@
                 }
             }
             const xijPool = Object.entries(trailFreq).sort((a,b)=>b[1]-a[1]).slice(0, 15).map(e=>e[0]);
-            
             const h5 = fullHistory.slice(0, 5);
             let f5 = {}; h5.forEach(h => h.numbers.forEach(n => f5[n] = (f5[n]||0)+1));
             const chengPool = [...prevNums].sort((a,b)=>(f5[b]||0)-(f5[a]||0));
-
             const shawnPool = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0, 15).map(e=>e[0]);
             let tailMap = {}; latestNums.forEach(n => { const t = n.slice(-1); tailMap[t] = (tailMap[t]||0)+1; });
-            const bestTail = Object.entries(tailMap).sort((a,b)=>b[1]-a[1])[0][0];
-            const tailPool = allNums.filter(n => n.endsWith(bestTail));
+            const bt = Object.entries(tailMap).sort((a,b)=>b[1]-a[1])[0][0];
+            const xiaoTianPool = allNums.filter(n => n.endsWith(bt));
             const serialPool = allNums.filter(n => latestNums.includes((parseInt(n)-1).toString().padStart(2,'0')) || latestNums.includes((parseInt(n)+1).toString().padStart(2,'0')));
 
+            const topPool = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]).slice(0, 15);
+            const lowPool = Object.keys(counts).sort((a,b)=>counts[a]-counts[b]).slice(0, 15);
+            const bobPool = [...shuffle(topPool).slice(0, 5), ...shuffle(lowPool).slice(0, 5)];
+
+            let yangPool = [];
+            const sortedLatest = [...latestNums].map(n=>parseInt(n)).sort((a,b)=>a-b);
+            for(let i=0; i<sortedLatest.length-1; i++){
+                if(sortedLatest[i+1] - sortedLatest[i] === 2) yangPool.push((sortedLatest[i]+1).toString().padStart(2, '0'));
+            }
+
+            const mixLinPool = [...shawnPool].concat(serialPool).slice(0, 20);
+
+            // 更新：更名為 Xij:
             const strats = [
-                { name: 'Xij', color: 'text-yellow-500', pool: xijPool },
+                { name: 'Xij:', color: 'text-yellow-500', pool: xijPool },
                 { name: '承', color: 'text-emerald-400', pool: chengPool },
                 { name: '中的', color: 'text-blue-400', pool: allNums },
                 { name: 'Shawn', color: 'text-orange-400', pool: shawnPool },
-                { name: '小天', color: 'text-pink-400', pool: tailPool },
-                { name: '暴暴龍', color: 'text-purple-400', pool: serialPool }
+                { name: '小天', color: 'text-pink-400', pool: xiaoTianPool },
+                { name: '暴暴龍', color: 'text-purple-400', pool: serialPool },
+                { name: 'Bob', color: 'text-cyan-400', pool: bobPool },
+                { name: 'Yang', color: 'text-lime-400', pool: yangPool.length ? yangPool : allNums },
+                { name: 'Mix Lin', color: 'text-amber-400', pool: mixLinPool }
             ];
 
             document.getElementById('expert-title').innerText = `💡 脆友 ${expertBallCount}球 的攻略推薦`;
             document.getElementById('strat-logic').innerHTML = strats.map(s => {
                 const picks = shuffle([...(s.pool.length ? s.pool : allNums)]).slice(0, expertBallCount).sort();
+                // 移除選球按鈕：僅保留文字顯示
                 return `
                 <div class="py-2 border-b border-slate-700 flex justify-between items-center">
-                    <div><span class="${s.color} font-bold">${s.name}:</span><span class="ml-2 text-slate-300 tracking-wider">${picks.join(' ')}</span></div>
-                    <button onclick="useExpertPicks(['${picks.join("','")}'])" class="use-strat-btn text-slate-400">選球</button>
+                    <div><span class="${s.color} font-bold">${s.name}</span><span class="ml-2 text-slate-300 tracking-wider">${picks.join(' ')}</span></div>
                 </div>`;
             }).join('');
         }
 
-        // 渲染屬性分組結果
         function renderNGroups(groups) {
-            const nDefs = {
-                n1: "<b>N1 溫熱：</b>分析範圍內的高機率號碼。",
-                n2: "<b>N2 回歸：</b>出現 2 次且上期未開。",
-                n3: "<b>N3 拖號：</b>根據最新一期推薦的拖牌。",
-                n4: "<b>N4 共伴：</b>高共伴率組合。",
-                n5: "<b>N5 破冰：</b>連續最久未開號碼。",
-                n6: "<b>N6 未開小號：</b>近 2 期未開之 1~10。",
-                n7: "<b>N7 5熱：</b>近 5 期內強勢號碼。"
-            };
+            const nDefs = { n1: "N1 溫熱", n2: "N2 回歸", n3: "N3 拖號", n4: "N4 共伴", n5: "N5 破冰", n6: "N6 未開小號", n7: "N7 5熱" };
             document.getElementById('n-groups').innerHTML = Object.entries(nDefs).map(([k, def]) => `
                 <div class="border-b border-slate-700 pb-4">
-                    <p class="text-emerald-300 mb-2">${def}</p>
+                    <p class="text-emerald-300 mb-2"><b>${def}：</b></p>
                     <div class="flex flex-wrap gap-x-4">${groups[k].map(i => `<span class="text-slate-300 font-bold text-xl">${i.num}<sub>.${i.count}</sub></span>`).join('')}</div>
                 </div>`).join('');
         }
 
-        function changeExpertBallCount(n) {
-            expertBallCount = n;
-            document.querySelectorAll('.eb-btn').forEach(b => b.classList.remove('expert-count-active'));
-            document.getElementById('eb-' + n).classList.add('expert-count-active');
-            renderAll(); 
-        }
-
-        function useExpertPicks(list) { expertPicks = list.slice(0, currentBallCount); strat = 'expert'; renderAll(); }
-
+        function changeExpertBallCount(n) { expertBallCount = n; document.querySelectorAll('.eb-btn').forEach(b => b.classList.remove('expert-count-active')); document.getElementById('eb-' + n).classList.add('expert-count-active'); renderAll(); }
         function renderPrediction(counts) {
             let res = [];
             const sortedNums = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
-            if (strat === 'expert' && expertPicks) {
-                res = expertPicks.map(n => ({ num: n, count: counts[n] || 0 }));
-            } else if (strat === 'random') {
-                res = shuffle(Object.keys(counts)).slice(0, currentBallCount).map(n=>({num:n,count:counts[n]||0}));
-            } else {
-                const poolSize = strat === 'hot' ? 10 : 15;
-                const pool = sortedNums.slice(0, poolSize);
-                res = shuffle(pool).slice(0, currentBallCount).map(n => ({ num: n, count: counts[n] }));
-            }
+            if (strat === 'random') { res = shuffle(Object.keys(counts)).slice(0, currentBallCount).map(n=>({num:n,count:counts[n]||0})); } 
+            else { const poolSize = strat === 'hot' ? 10 : 15; const pool = sortedNums.slice(0, poolSize); res = shuffle(pool).slice(0, currentBallCount).map(n => ({ num: n, count: counts[n] })); }
             document.getElementById('pred-box').innerHTML = res.map(i => `<div class="ball bg-gradient-to-tr from-yellow-400 to-yellow-600 text-slate-900 shadow-xl">${i.num}<sub>.${i.count}</sub></div>`).join('');
         }
-
-        function changeLimit(l) { 
-            currentLimit = l; 
-            document.querySelectorAll('.limit-btn').forEach(b => b.classList.remove('limit-active')); 
-            document.getElementById(`btn-limit-${l}`).classList.add('limit-active'); 
-            document.getElementById('top-title').innerText = `📈 近${l}期-出現機率排行榜 (Top 10)`; 
-            document.getElementById('low-title').innerText = `📉 近${l}期-冷門號碼排行榜 (Low 10)`; 
-            expertPicks = null; renderAll(); 
-        }
-
-        function changeBallCount(c) { 
-            currentBallCount = c; 
-            document.querySelectorAll('.count-btn').forEach(b => b.classList.remove('count-active')); 
-            document.getElementById('btn-count-' + c).classList.add('count-active'); 
-            renderAll(); 
-        }
-        function setStrat(s) { strat = s; expertPicks = null; document.querySelectorAll('.strat-btn').forEach(b => b.classList.remove('ring-4', 'ring-white/50')); document.getElementById('btn-' + s).classList.add('ring-4', 'ring-white/50'); renderAll(); }
+        function changeLimit(l) { currentLimit = l; document.querySelectorAll('.limit-btn').forEach(b => b.classList.remove('limit-active')); document.getElementById(`btn-limit-${l}`).classList.add('limit-active'); document.getElementById('top-title').innerText = `📈 近${l}期-出現機率排行榜 (Top 10)`; document.getElementById('low-title').innerText = `📉 近${l}期-冷門號碼排行榜 (Low 10)`; renderAll(); }
+        function changeBallCount(c) { currentBallCount = c; document.querySelectorAll('.count-btn').forEach(b => b.classList.remove('count-active')); document.getElementById('btn-count-' + c).classList.add('count-active'); renderAll(); }
+        function setStrat(s) { strat = s; document.querySelectorAll('.strat-btn').forEach(b => b.classList.remove('ring-4', 'ring-white/50')); document.getElementById('btn-' + s).classList.add('ring-4', 'ring-white/50'); renderAll(); }
         function renderHistoryList(history) { document.getElementById('history-container').innerHTML = history.map(h => `<div class="bg-slate-900/40 p-3 rounded-lg border border-slate-700/50 flex flex-col md:flex-row"><span class="text-indigo-400 font-mono font-bold md:w-32">${h.period}</span><span class="text-slate-300 flex-1 tracking-widest text-lg">${h.numbers.join(' ')}</span></div>`).join(''); }
-        
         window.onload = initRealtimeSync;
     </script>
 </body>
