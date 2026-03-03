@@ -27,9 +27,6 @@
             </div>
             
             <div class="flex flex-col items-end gap-3">
-                <button onclick="triggerScrape()" id="scrape-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-lg font-bold shadow-lg transition-all active:scale-95 flex items-center gap-2">
-                    <span id="btn-icon">🚀</span> <span id="btn-text">立即抓取最新開獎</span>
-                </button>
                 <div class="bg-indigo-900/30 text-indigo-300 px-3 py-1 rounded-full border border-indigo-500/30 flex items-center gap-2 text-xs">
                     <span class="relative flex h-2 w-2">
                       <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -42,14 +39,17 @@
 
         <div class="bg-slate-800 p-6 rounded-2xl border-l-8 border-indigo-400 shadow-xl">
             <h3 class="text-xl font-bold text-indigo-300 mb-4 flex items-center gap-2">數據分析範圍 (期數切換)</h3>
-            <div class="flex flex-wrap items-center gap-4 text-lg">
-                <button onclick="changeLimit(5)" id="btn-limit-5" class="limit-btn bg-slate-700 px-6 py-2 rounded-lg font-bold hover:bg-indigo-600 transition-all border border-transparent">近 5 期</button>
-                <button onclick="changeLimit(10)" id="btn-limit-10" class="limit-btn limit-active px-6 py-2 rounded-lg font-bold border">近 10 期</button>
-                <div class="flex items-center bg-slate-700 rounded-lg px-3 py-1 border border-slate-600 ml-auto">
-                    <span class="mr-2 text-slate-400 text-sm">自定義:</span>
-                    <input type="number" id="custom-limit" min="1" max="50" placeholder="期數" class="bg-transparent border-none text-white w-16 text-center focus:ring-0 text-lg outline-none">
-                    <button onclick="applyCustomLimit()" class="ml-2 bg-indigo-500 hover:bg-indigo-400 px-3 py-1 rounded text-sm font-bold">套用</button>
-                </div>
+            <div class="grid grid-cols-5 gap-2 md:gap-3 text-sm">
+                <button onclick="changeLimit(1)" id="btn-limit-1" class="limit-btn bg-slate-700 py-2 rounded-lg font-bold hover:bg-indigo-600 transition-all border border-transparent">近 1 期</button>
+                <button onclick="changeLimit(2)" id="btn-limit-2" class="limit-btn bg-slate-700 py-2 rounded-lg font-bold hover:bg-indigo-600 transition-all border border-transparent">近 2 期</button>
+                <button onclick="changeLimit(3)" id="btn-limit-3" class="limit-btn bg-slate-700 py-2 rounded-lg font-bold hover:bg-indigo-600 transition-all border border-transparent">近 3 期</button>
+                <button onclick="changeLimit(4)" id="btn-limit-4" class="limit-btn bg-slate-700 py-2 rounded-lg font-bold hover:bg-indigo-600 transition-all border border-transparent">近 4 期</button>
+                <button onclick="changeLimit(5)" id="btn-limit-5" class="limit-btn bg-slate-700 py-2 rounded-lg font-bold hover:bg-indigo-600 transition-all border border-transparent">近 5 期</button>
+                <button onclick="changeLimit(6)" id="btn-limit-6" class="limit-btn bg-slate-700 py-2 rounded-lg font-bold hover:bg-indigo-600 transition-all border border-transparent">近 6 期</button>
+                <button onclick="changeLimit(7)" id="btn-limit-7" class="limit-btn bg-slate-700 py-2 rounded-lg font-bold hover:bg-indigo-600 transition-all border border-transparent">近 7 期</button>
+                <button onclick="changeLimit(8)" id="btn-limit-8" class="limit-btn bg-slate-700 py-2 rounded-lg font-bold hover:bg-indigo-600 transition-all border border-transparent">近 8 期</button>
+                <button onclick="changeLimit(9)" id="btn-limit-9" class="limit-btn bg-slate-700 py-2 rounded-lg font-bold hover:bg-indigo-600 transition-all border border-transparent">近 9 期</button>
+                <button onclick="changeLimit(10)" id="btn-limit-10" class="limit-btn limit-active py-2 rounded-lg font-bold border">近 10 期</button>
             </div>
         </div>
 
@@ -61,10 +61,11 @@
         <div class="bg-slate-800 p-8 rounded-2xl border-t-8 border-yellow-500 shadow-2xl">
             <h2 class="text-xl font-bold text-yellow-500 mb-6 text-center tracking-widest">🔮 AI 核心預測 (6球模式)</h2>
             <div id="pred-box" class="flex justify-around mb-8"></div>
-            <div class="grid grid-cols-3 gap-4">
-                <button onclick="setStrat('hot')" id="btn-hot" class="strat-btn bg-orange-600 p-4 rounded-xl font-bold text-lg ring-4 ring-white/50">🔥 追熱門</button>
-                <button onclick="setStrat('balanced')" id="btn-balanced" class="strat-btn bg-emerald-600 p-4 rounded-xl font-bold text-lg">⚖️ 均衡</button>
-                <button onclick="setStrat('luck')" id="btn-luck" class="strat-btn bg-purple-600 p-4 rounded-xl font-bold text-lg">🎲 拼運氣</button>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <button onclick="setStrat('hot')" id="btn-hot" class="strat-btn bg-orange-600 p-3 rounded-xl font-bold text-base ring-4 ring-white/50">🔥 追熱門</button>
+                <button onclick="setStrat('balanced')" id="btn-balanced" class="strat-btn bg-emerald-600 p-3 rounded-xl font-bold text-base">⚖️ 均衡</button>
+                <button onclick="setStrat('luck')" id="btn-luck" class="strat-btn bg-purple-600 p-3 rounded-xl font-bold text-base">🎲 拼運氣</button>
+                <button onclick="setStrat('random')" id="btn-random" class="strat-btn bg-blue-600 p-3 rounded-xl font-bold text-base">🌀 AI隨便挑</button>
             </div>
         </div>
 
@@ -108,44 +109,7 @@
         let currentLimit = 10;
         let strat = 'hot';
 
-        // 1. 新增：觸發 Netlify Serverless 抓取函式
-        async function triggerScrape() {
-            const btn = document.getElementById('scrape-btn');
-            const icon = document.getElementById('btn-icon');
-            const text = document.getElementById('btn-text');
-            
-            // 設定為載入狀態
-            btn.disabled = true;
-            btn.classList.add('opacity-70', 'cursor-not-allowed');
-            icon.innerText = "⏳";
-            icon.classList.add('loading-spin');
-            text.innerText = "正在抓取中...";
-
-            try {
-                // 呼叫您剛剛在 Netlify 設定的 Function 路徑
-                const response = await fetch('/.netlify/functions/scrape');
-                const result = await response.json();
-                
-                if (result.status === "success") {
-                    console.log("✅ 雲端抓取指令發送成功");
-                    // 不需要手動更新畫面，Firebase Realtime Listener 會自動感應到資料庫變動
-                } else {
-                    alert("抓取失敗：" + (result.message || "未知錯誤"));
-                }
-            } catch (error) {
-                console.error("詳細錯誤資訊:", error);
-                alert("連線失敗！原因：" + error.message + "\n請檢查 Netlify 後台 Function Logs。");
-            } finally {
-                // 恢復按鈕狀態
-                btn.disabled = false;
-                btn.classList.remove('opacity-70', 'cursor-not-allowed');
-                icon.innerText = "🚀";
-                icon.classList.remove('loading-spin');
-                text.innerText = "立即抓取最新開獎";
-            }
-        }
-
-        // Firebase 實時監聽 (保持不變)
+        // Firebase 實時監聽
         function initRealtimeSync() {
             const dataRef = database.ref('bingo_data');
             dataRef.on('value', (snapshot) => {
@@ -159,7 +123,6 @@
             });
         }
 
-        // ... 以下為原有的 render 邏輯 (renderAll, calculateNGroups 等) 保持不變 ...
         function renderAll() {
             if (!fullHistory.length) return;
             const history = fullHistory.slice(0, currentLimit);
@@ -168,7 +131,7 @@
             numsOnly.flat().forEach(n => counts[n] = (counts[n] || 0) + 1);
             const groups = calculateNGroups(history, counts);
             renderPrediction(counts, groups);
-            renderStrategies(history, groups);
+            renderStrategies(history); // 更新為只接受歷史數據進行拖號計算
             renderStars(groups);
             renderNGroups(groups);
             renderHistoryList(history);
@@ -207,23 +170,64 @@
                 return res.map(n => ({num: n, count: counts[n] || 0}));
             };
             const high = Object.keys(counts).filter(n => counts[n] >= 3);
+            
             let res = [];
-            if (strat === 'hot') res = [...pick(high.map(n=>({num:n})), 2), ...pick(groups.n3, 2), ...pick(groups.n7, 2)];
-            else if (strat === 'balanced') res = [...pick(high.map(n=>({num:n})), 1), ...pick(groups.n3, 1), ...pick(groups.n2, 2), ...pick(groups.n6, 2)];
-            else res = [...pick(high.map(n=>({num:n})), 1), ...pick(groups.n6, 2), ...pick(groups.n5, 1), ...pick(groups.n7, 2)];
+            if (strat === 'random') {
+                const allNumbers = Array.from({length: 80}, (_, i) => (i+1).toString().padStart(2, '0'));
+                const shuffled = allNumbers.sort(() => 0.5 - Math.random());
+                res = shuffled.slice(0, 6).map(n => ({num: n, count: counts[n] || 0}));
+            } else if (strat === 'hot') {
+                res = [...pick(high.map(n=>({num:n})), 2), ...pick(groups.n3, 2), ...pick(groups.n7, 2)];
+            } else if (strat === 'balanced') {
+                res = [...pick(high.map(n=>({num:n})), 1), ...pick(groups.n3, 1), ...pick(groups.n2, 2), ...pick(groups.n6, 2)];
+            } else {
+                res = [...pick(high.map(n=>({num:n})), 1), ...pick(groups.n6, 2), ...pick(groups.n5, 1), ...pick(groups.n7, 2)];
+            }
+            
             document.getElementById('pred-box').innerHTML = res.map(i => `<div class="ball bg-gradient-to-tr from-yellow-400 to-yellow-600 text-slate-900 shadow-xl">${i.num}<sub>.${i.count}</sub></div>`).join('');
+        }
+
+        // 更新攻略邏輯：實作 xij 的選球邏輯 (拖號)
+        function renderStrategies(history) {
+            if (fullHistory.length < 2) return;
+
+            const lastPeriodNums = fullHistory[0].numbers; // 本期號碼
+            let trailFreq = {};
+
+            // 遍歷歷史，尋找上一期號碼出現後，下期出現的規律
+            for (let i = 1; i < fullHistory.length; i++) {
+                const pastCurrent = fullHistory[i].numbers;
+                const pastNext = fullHistory[i-1].numbers;
+
+                // 檢查本期 20 碼在過去這期出現的次數
+                const matches = lastPeriodNums.filter(n => pastCurrent.includes(n));
+                
+                if (matches.length > 0) {
+                    pastNext.forEach(n => {
+                        trailFreq[n] = (trailFreq[n] || 0) + 1;
+                    });
+                }
+            }
+
+            // 選出機率最高的 6 個拖號
+            const xijPicks = Object.entries(trailFreq)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 6)
+                .map(item => item[0])
+                .sort();
+
+            document.getElementById('strat-logic').innerHTML = `
+                <div class="pb-2 border-b border-slate-700 font-bold">
+                    <span class="text-slate-400">xij的選球邏輯:</span>
+                    <span class="text-yellow-500 ml-2">${xijPicks.join(' ')}</span>
+                </div>
+            `;
         }
 
         function renderStars(groups) {
             const pick = (k, c) => groups[k].map(i => i.num).sort(() => 0.5 - Math.random()).slice(0, c);
             const stars = { "2星": pick('n1', 2), "3星": pick('n1', 3), "4星": pick('n1', 4), "5星": pick('n1', 5) };
             document.getElementById('star-list').innerHTML = Object.entries(stars).map(([k, v]) => `<div class="bg-slate-900/50 p-3 rounded border border-slate-700 shadow-inner"><span class="text-indigo-300 font-bold">${k}:</span> ${v.join(', ')}</div>`).join('');
-        }
-
-        function renderStrategies(history, groups) {
-            const last = history[0].numbers;
-            const gMap = { g1: groups.n7.slice(0, 6).map(i => i.num), g2: last.slice(0, 6) };
-            document.getElementById('strat-logic').innerHTML = Object.entries(gMap).map(([k,v]) => `<div class="pb-2 border-b border-slate-700 font-bold"><span class="text-slate-400">${k}:</span> <span class="text-yellow-500 ml-2">${v.join(' ')}</span></div>`).join('');
         }
 
         function renderNGroups(groups) {
@@ -250,10 +254,23 @@
             document.getElementById('prob-rank').innerHTML = sorted.map(([num, count], index) => `<div class="flex justify-between border-b border-slate-700 py-2"><span><span class="text-slate-500 mr-2">${index + 1}.</span> 球號 <b class="text-rose-400">${num}</b></span><span>出現 <b>${count}</b> 次</span></div>`).join('');
         }
 
-        function changeLimit(l) { currentLimit = l; updateLimitUI(l); renderAll(); }
-        function applyCustomLimit() { const v = document.getElementById('custom-limit').value; if (v > 0) { currentLimit = parseInt(v); updateLimitUI(null); renderAll(); } }
-        function updateLimitUI(l) { document.querySelectorAll('.limit-btn').forEach(b => b.classList.remove('limit-active')); if(l) document.getElementById(`btn-limit-${l}`).classList.add('limit-active'); }
-        function setStrat(s) { strat = s; document.querySelectorAll('.strat-btn').forEach(b => b.classList.remove('ring-4', 'ring-white/50')); document.getElementById('btn-' + s).classList.add('ring-4', 'ring-white/50'); renderAll(); }
+        function changeLimit(l) { 
+            currentLimit = l; 
+            updateLimitUI(l); 
+            renderAll(); 
+        }
+
+        function updateLimitUI(l) { 
+            document.querySelectorAll('.limit-btn').forEach(b => b.classList.remove('limit-active')); 
+            document.getElementById(`btn-limit-${l}`).classList.add('limit-active'); 
+        }
+
+        function setStrat(s) { 
+            strat = s; 
+            document.querySelectorAll('.strat-btn').forEach(b => b.classList.remove('ring-4', 'ring-white/50')); 
+            document.getElementById('btn-' + s).classList.add('ring-4', 'ring-white/50'); 
+            renderAll(); 
+        }
         
         window.onload = initRealtimeSync;
     </script>
