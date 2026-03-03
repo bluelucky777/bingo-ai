@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>數字 AI 分析儀 - 即時更新版</title>
+    <title>數字 AI 分析儀 - 脆友強化版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
@@ -11,14 +11,15 @@
         .ball { width: 44px; height: 44px; font-size: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; position: relative; }
         sub { font-size: 0.7rem; position: absolute; bottom: 2px; right: 4px; font-weight: 900; }
         .limit-active { background-color: #4f46e5 !important; border-color: #818cf8 !important; box-shadow: 0 0 10px rgba(129, 140, 248, 0.4); }
-        /* 按鈕載入動畫 */
-        .loading-spin { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-200 p-4 font-sans leading-relaxed">
     <div class="max-w-3xl mx-auto space-y-8">
         
+        <div class="text-center text-xs text-slate-500 mb-2">
+            以上信息僅供參考，使用前請自行確認其準確性。本內容僅供參考，使用者需自行承擔風險。
+        </div>
+
         <header class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4 shadow-lg">
             <div class="flex-1">
                 <h1 class="text-2xl font-bold text-yellow-500 flex items-center gap-2">🎰 數字 AI 分析儀</h1>
@@ -70,7 +71,7 @@
         </div>
 
         <div class="bg-slate-800 p-6 rounded-xl border-l-8 border-yellow-500 shadow-lg">
-            <h3 class="text-xl font-bold text-yellow-500 mb-4">💡 攻略邏輯推薦</h3>
+            <h3 class="text-xl font-bold text-yellow-500 mb-4">💡 脆友的攻略推薦</h3>
             <div id="strat-logic" class="space-y-4 text-lg"></div>
         </div>
 
@@ -109,7 +110,6 @@
         let currentLimit = 10;
         let strat = 'hot';
 
-        // Firebase 實時監聽
         function initRealtimeSync() {
             const dataRef = database.ref('bingo_data');
             dataRef.on('value', (snapshot) => {
@@ -131,7 +131,7 @@
             numsOnly.flat().forEach(n => counts[n] = (counts[n] || 0) + 1);
             const groups = calculateNGroups(history, counts);
             renderPrediction(counts, groups);
-            renderStrategies(history); // 更新為只接受歷史數據進行拖號計算
+            renderStrategies(); 
             renderStars(groups);
             renderNGroups(groups);
             renderHistoryList(history);
@@ -187,39 +187,44 @@
             document.getElementById('pred-box').innerHTML = res.map(i => `<div class="ball bg-gradient-to-tr from-yellow-400 to-yellow-600 text-slate-900 shadow-xl">${i.num}<sub>.${i.count}</sub></div>`).join('');
         }
 
-        // 更新攻略邏輯：實作 xij 的選球邏輯 (拖號)
-        function renderStrategies(history) {
-            if (fullHistory.length < 2) return;
+        // 1-2. 新增項目 ”承 的選球邏輯“
+        function renderStrategies() {
+            if (fullHistory.length < 5) return;
 
-            const lastPeriodNums = fullHistory[0].numbers; // 本期號碼
+            const latestPeriodNums = fullHistory[0].numbers; 
             let trailFreq = {};
 
-            // 遍歷歷史，尋找上一期號碼出現後，下期出現的規律
+            // xij 選球邏輯 (拖號)
             for (let i = 1; i < fullHistory.length; i++) {
                 const pastCurrent = fullHistory[i].numbers;
                 const pastNext = fullHistory[i-1].numbers;
-
-                // 檢查本期 20 碼在過去這期出現的次數
-                const matches = lastPeriodNums.filter(n => pastCurrent.includes(n));
-                
+                const matches = latestPeriodNums.filter(n => pastCurrent.includes(n));
                 if (matches.length > 0) {
-                    pastNext.forEach(n => {
-                        trailFreq[n] = (trailFreq[n] || 0) + 1;
-                    });
+                    pastNext.forEach(n => { trailFreq[n] = (trailFreq[n] || 0) + 1; });
                 }
             }
+            const xijPicks = Object.entries(trailFreq).sort((a, b) => b[1] - a[1]).slice(0, 6).map(item => item[0]).sort();
 
-            // 選出機率最高的 6 個拖號
-            const xijPicks = Object.entries(trailFreq)
-                .sort((a, b) => b[1] - a[1])
+            // 承 的選球邏輯：比對最新號碼與近 5 期的規律
+            const last5History = fullHistory.slice(0, 5);
+            let chengFreq = {};
+            last5History.forEach(h => h.numbers.forEach(n => { chengFreq[n] = (chengFreq[n] || 0) + 1; }));
+            
+            const chengPicks = latestPeriodNums
+                .map(n => ({ num: n, count: chengFreq[n] || 0 }))
+                .sort((a, b) => b.count - a.count)
                 .slice(0, 6)
-                .map(item => item[0])
+                .map(x => x.num)
                 .sort();
 
             document.getElementById('strat-logic').innerHTML = `
                 <div class="pb-2 border-b border-slate-700 font-bold">
-                    <span class="text-slate-400">脆友xij的選球邏輯:</span>
+                    <span class="text-slate-400">xij的選球邏輯:</span>
                     <span class="text-yellow-500 ml-2">${xijPicks.join(' ')}</span>
+                </div>
+                <div class="pt-2 font-bold">
+                    <span class="text-slate-400">承的選球邏輯:</span>
+                    <span class="text-emerald-400 ml-2">${chengPicks.join(' ')}</span>
                 </div>
             `;
         }
@@ -254,12 +259,7 @@
             document.getElementById('prob-rank').innerHTML = sorted.map(([num, count], index) => `<div class="flex justify-between border-b border-slate-700 py-2"><span><span class="text-slate-500 mr-2">${index + 1}.</span> 球號 <b class="text-rose-400">${num}</b></span><span>出現 <b>${count}</b> 次</span></div>`).join('');
         }
 
-        function changeLimit(l) { 
-            currentLimit = l; 
-            updateLimitUI(l); 
-            renderAll(); 
-        }
-
+        function changeLimit(l) { currentLimit = l; updateLimitUI(l); renderAll(); }
         function updateLimitUI(l) { 
             document.querySelectorAll('.limit-btn').forEach(b => b.classList.remove('limit-active')); 
             document.getElementById(`btn-limit-${l}`).classList.add('limit-active'); 
