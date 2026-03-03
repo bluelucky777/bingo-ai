@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>數字 AI 分析儀 - 標題動態優化版</title>
+    <title>數字 AI 分析儀 - 攻略擴充版</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
@@ -95,11 +95,6 @@
             <div id="strat-logic" class="space-y-4 text-lg"></div>
         </div>
 
-        <div class="bg-slate-800 p-6 rounded-xl border-l-8 border-indigo-500 shadow-lg">
-            <h3 class="text-xl font-bold text-indigo-400 mb-4">⭐ 星級配號</h3>
-            <div id="star-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-lg"></div>
-        </div>
-
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
             <h3 class="text-xl font-bold text-emerald-400 mb-6">🔍 號碼屬性分析</h3>
             <div id="n-groups" class="space-y-6 text-lg"></div>
@@ -153,7 +148,6 @@
             const groups = calculateNGroups(history, counts);
             renderPrediction(counts, groups);
             renderStrategies();
-            renderStars(groups);
             renderNGroups(groups);
             renderHistoryList(history);
             renderProbabilityRank(history);
@@ -229,8 +223,10 @@
         }
 
         function renderStrategies() {
-            if (fullHistory.length < 5) return;
+            if (fullHistory.length < 10) return;
             const latestPeriodNums = fullHistory[0].numbers; 
+            
+            // --- 原本 3 位脆友邏輯 ---
             let trailFreq = {};
             for (let i = 1; i < fullHistory.length; i++) {
                 const pastCurrent = fullHistory[i].numbers;
@@ -241,22 +237,37 @@
                 }
             }
             const xijPicks = Object.entries(trailFreq).sort((a, b) => b[1] - a[1]).slice(0, 6).map(item => item[0]).sort();
+            
             const last5History = fullHistory.slice(0, 5);
             let chengFreq = {};
             last5History.forEach(h => h.numbers.forEach(n => { chengFreq[n] = (chengFreq[n] || 0) + 1; }));
             const chengPicks = latestPeriodNums.map(n => ({ num: n, count: chengFreq[n] || 0 })).sort((a, b) => b.count - a.count).slice(0, 6).map(x => x.num).sort();
+            
             const allNums = Array.from({length: 80}, (_, i) => (i+1).toString().padStart(2, '0'));
             const zhongPicks = allNums.sort(() => 0.5 - Math.random()).slice(0, 6).sort();
+
+            // --- 新增 3 位脆友邏輯 ---
+            // Shawn 1 (10期連開 + 同出): 抓近10期頻率最高者作為同出推薦
+            const last10History = fullHistory.slice(0, 10);
+            let shawnFreq = {};
+            last10History.forEach(h => h.numbers.forEach(n => { shawnFreq[n] = (shawnFreq[n]||0) + 1; }));
+            const shawn1Picks = Object.entries(shawnFreq).sort((a,b) => b[1] - a[1]).slice(0, 6).map(i => i[0]).sort();
+
+            // 小天 (追熱門 + 尾數): 抓熱門號且挑選其尾數相關號碼
+            const hotNums = Object.entries(shawnFreq).sort((a,b) => b[1] - a[1]).slice(0, 10).map(i => i[0]);
+            const selectedTail = hotNums[0] ? hotNums[0].slice(-1) : '5';
+            const xiaoTianPicks = allNums.filter(n => n.endsWith(selectedTail)).slice(0, 6).sort();
+
+            // Shawn 2 (追連續號 + 熱門): 上期號碼(連續潛力) + 總體熱門
+            const shawn2Picks = Array.from(new Set([...latestPeriodNums.slice(0,3), ...hotNums.slice(0,3)])).sort().slice(0,6);
+
             document.getElementById('strat-logic').innerHTML = `
                 <div class="pb-2 border-b border-slate-700 font-bold"><span class="text-slate-400">脆友xij的選球邏輯:</span><span class="text-yellow-500 ml-2">${xijPicks.join(' ')}</span></div>
                 <div class="py-2 border-b border-slate-700 font-bold"><span class="text-slate-400">承的選球邏輯:</span><span class="text-emerald-400 ml-2">${chengPicks.join(' ')}</span></div>
-                <div class="pt-2 font-bold"><span class="text-slate-400">中的選球邏輯:</span><span class="text-blue-400 ml-2">${zhongPicks.join(' ')}</span></div>`;
-        }
-
-        function renderStars(groups) {
-            const pick = (k, c) => groups[k].map(i => i.num).sort(() => 0.5 - Math.random()).slice(0, c);
-            const stars = { "2星": pick('n1', 2), "3星": pick('n1', 3), "4星": pick('n1', 4), "5星": pick('n1', 5) };
-            document.getElementById('star-list').innerHTML = Object.entries(stars).map(([k, v]) => `<div class="bg-slate-900/50 p-3 rounded border border-slate-700 shadow-inner"><span class="text-indigo-300 font-bold">${k}:</span> ${v.join(', ')}</div>`).join('');
+                <div class="py-2 border-b border-slate-700 font-bold"><span class="text-slate-400">中的選球邏輯:</span><span class="text-blue-400 ml-2">${zhongPicks.join(' ')}</span></div>
+                <div class="py-2 border-b border-slate-700 font-bold"><span class="text-indigo-400">Shawn的選球邏輯:</span><span class="text-yellow-500 ml-2">${shawn1Picks.join(' ')}</span></div>
+                <div class="py-2 border-b border-slate-700 font-bold"><span class="text-indigo-400">小天的選球邏輯:</span><span class="text-emerald-400 ml-2">${xiaoTianPicks.join(' ')}</span></div>
+                <div class="pt-2 font-bold"><span class="text-indigo-400">Shawn的選球邏輯:</span><span class="text-blue-400 ml-2">${shawn2Picks.join(' ')}</span></div>`;
         }
 
         function renderNGroups(groups) {
@@ -278,13 +289,10 @@
 
         function renderProbabilityRank(history) {
             let counts = {};
-            for (let i = 1; i <= 80; i++) {
-                counts[i.toString().padStart(2, '0')] = 0;
-            }
+            for (let i = 1; i <= 80; i++) counts[i.toString().padStart(2, '0')] = 0;
             history.map(h => h.numbers).flat().forEach(n => counts[n]++);
             
             const entries = Object.entries(counts);
-            
             const top10 = [...entries].sort((a, b) => b[1] - a[1]).slice(0, 10);
             document.getElementById('prob-rank').innerHTML = top10.map(([num, count], index) => 
                 `<div class="flex justify-between border-b border-slate-700 py-2"><span><span class="text-slate-500 mr-2">${index + 1}.</span> 球號 <b class="text-rose-400">${num}</b></span><span>出現 <b>${count}</b> 次</span></div>`
@@ -296,15 +304,11 @@
             ).join('');
         }
 
-        // 核心優化：優化 changeLimit 函式以同步更新標題
         function changeLimit(l) { 
             currentLimit = l; 
             updateLimitUI(l); 
-            
-            // 動態更新標題文字
             document.getElementById('top-title').innerHTML = `📈 近${l}期-出現機率排行榜 (Top 10)`;
             document.getElementById('low-title').innerHTML = `📉 近${l}期-冷門號碼排行榜 (Low 10)`;
-            
             renderAll(); 
         }
 
