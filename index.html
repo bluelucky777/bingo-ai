@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>數字 AI 分析儀 - 脆友攻略優化版</title>
+    <title>數字 AI 分析儀 - 標題動態優化版</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
@@ -55,15 +55,22 @@
         </div>
 
         <div class="bg-slate-800 p-6 rounded-2xl border-l-8 border-rose-500 shadow-xl">
-            <h3 id="prob-title" class="text-xl font-bold text-rose-400 mb-4">📈 出現機率排行榜 (Top 10)</h3>
-            <div id="prob-rank" class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-lg">尚未載入數據</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 id="top-title" class="text-xl font-bold text-rose-400 mb-4 flex items-center gap-2">📈 近10期-出現機率排行榜 (Top 10)</h3>
+                    <div id="prob-rank" class="space-y-2 text-lg">尚未載入數據</div>
+                </div>
+                <div>
+                    <h3 id="low-title" class="text-xl font-bold text-blue-400 mb-4 flex items-center gap-2">📉 近10期-冷門號碼排行榜 (Low 10)</h3>
+                    <div id="prob-low-rank" class="space-y-2 text-lg">尚未載入數據</div>
+                </div>
+            </div>
         </div>
 
         <div class="bg-slate-800 p-8 rounded-2xl border-t-8 border-yellow-500 shadow-2xl">
             <h2 class="text-xl font-bold text-yellow-500 mb-2 text-center tracking-widest">🔮 AI 核心預測</h2>
             <p class="text-center text-slate-400 text-xs mb-6">小數點後為該期內出現的次數</p>
-            <p class="text-center text-slate-400 text-xs mb-6">科學的盡頭是玄學</p>
-
+            
             <div class="flex flex-wrap justify-center gap-2 mb-8">
                 <button onclick="changeBallCount(1)" id="btn-count-1" class="count-btn bg-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-yellow-500 transition-all border border-transparent">1球</button>
                 <button onclick="changeBallCount(2)" id="btn-count-2" class="count-btn bg-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-yellow-500 transition-all border border-transparent">2球</button>
@@ -84,7 +91,7 @@
         </div>
 
         <div class="bg-slate-800 p-6 rounded-xl border-l-8 border-yellow-500 shadow-lg">
-            <h3 class="text-xl font-bold text-yellow-500 mb-4">💡 脆友的6球攻略推薦</h3>
+            <h3 class="text-xl font-bold text-yellow-500 mb-4">💡 脆友的攻略推薦</h3>
             <div id="strat-logic" class="space-y-4 text-lg"></div>
         </div>
 
@@ -122,7 +129,7 @@
         let fullHistory = [];
         let currentLimit = 10;
         let strat = 'hot';
-        let currentBallCount = 6; // 預設 6 球
+        let currentBallCount = 6;
 
         function initRealtimeSync() {
             const dataRef = database.ref('bingo_data');
@@ -176,7 +183,6 @@
             };
         }
 
-        // 修改預測邏輯：依球數調整組成比例
         function renderPrediction(counts, groups) {
             let used = [];
             const pick = (g, c) => {
@@ -192,32 +198,25 @@
                 const allNumbers = Array.from({length: 80}, (_, i) => (i+1).toString().padStart(2, '0')).map(n => ({num: n}));
                 res = pick(allNumbers, currentBallCount);
             } else if (strat === 'hot') {
-                // 邏輯：高機率(2) > N3拖號(2) > N4共伴(1) > N7熱門(1)
                 res.push(...pick(high, 2));
                 res.push(...pick(groups.n3, 2));
                 res.push(...pick(groups.n4, 1));
                 res.push(...pick(groups.n7, 1));
             } else if (strat === 'balanced') {
-                // 邏輯：高機率(1) > N3拖號(1) > N2回歸(2) > N6小號(2)
                 res.push(...pick(high, 1));
                 res.push(...pick(groups.n3, 1));
                 res.push(...pick(groups.n2, 2));
                 res.push(...pick(groups.n6, 2));
             } else if (strat === 'luck') {
-                // 邏輯：高機率(1) > N6小號(2) > N5破冰(1) > N7熱門(2)
                 res.push(...pick(high, 1));
                 res.push(...pick(groups.n6, 2));
                 res.push(...pick(groups.n5, 1));
                 res.push(...pick(groups.n7, 2));
             }
-            
-            // 根據選擇球數進行截取顯示
             const finalPicks = res.slice(0, currentBallCount);
-            
             document.getElementById('pred-box').innerHTML = finalPicks.map(i => `<div class="ball bg-gradient-to-tr from-yellow-400 to-yellow-600 text-slate-900 shadow-xl">${i.num}<sub>.${i.count}</sub></div>`).join('');
         }
 
-        // 新增：處理球數切換
         function changeBallCount(c) {
             currentBallCount = c;
             updateBallCountUI(c);
@@ -249,7 +248,7 @@
             const allNums = Array.from({length: 80}, (_, i) => (i+1).toString().padStart(2, '0'));
             const zhongPicks = allNums.sort(() => 0.5 - Math.random()).slice(0, 6).sort();
             document.getElementById('strat-logic').innerHTML = `
-                <div class="pb-2 border-b border-slate-700 font-bold"><span class="text-slate-400">xij的選球邏輯:</span><span class="text-yellow-500 ml-2">${xijPicks.join(' ')}</span></div>
+                <div class="pb-2 border-b border-slate-700 font-bold"><span class="text-slate-400">脆友xij的選球邏輯:</span><span class="text-yellow-500 ml-2">${xijPicks.join(' ')}</span></div>
                 <div class="py-2 border-b border-slate-700 font-bold"><span class="text-slate-400">承的選球邏輯:</span><span class="text-emerald-400 ml-2">${chengPicks.join(' ')}</span></div>
                 <div class="pt-2 font-bold"><span class="text-slate-400">中的選球邏輯:</span><span class="text-blue-400 ml-2">${zhongPicks.join(' ')}</span></div>`;
         }
@@ -279,12 +278,36 @@
 
         function renderProbabilityRank(history) {
             let counts = {};
-            history.map(h => h.numbers).flat().forEach(n => counts[n] = (counts[n] || 0) + 1);
-            const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
-            document.getElementById('prob-rank').innerHTML = sorted.map(([num, count], index) => `<div class="flex justify-between border-b border-slate-700 py-2"><span><span class="text-slate-500 mr-2">${index + 1}.</span> 球號 <b class="text-rose-400">${num}</b></span><span>出現 <b>${count}</b> 次</span></div>`).join('');
+            for (let i = 1; i <= 80; i++) {
+                counts[i.toString().padStart(2, '0')] = 0;
+            }
+            history.map(h => h.numbers).flat().forEach(n => counts[n]++);
+            
+            const entries = Object.entries(counts);
+            
+            const top10 = [...entries].sort((a, b) => b[1] - a[1]).slice(0, 10);
+            document.getElementById('prob-rank').innerHTML = top10.map(([num, count], index) => 
+                `<div class="flex justify-between border-b border-slate-700 py-2"><span><span class="text-slate-500 mr-2">${index + 1}.</span> 球號 <b class="text-rose-400">${num}</b></span><span>出現 <b>${count}</b> 次</span></div>`
+            ).join('');
+
+            const low10 = [...entries].sort((a, b) => a[1] - b[1]).slice(0, 10);
+            document.getElementById('prob-low-rank').innerHTML = low10.map(([num, count], index) => 
+                `<div class="flex justify-between border-b border-slate-700 py-2"><span><span class="text-slate-500 mr-2">${index + 1}.</span> 球號 <b class="text-blue-400">${num}</b></span><span>出現 <b>${count}</b> 次</span></div>`
+            ).join('');
         }
 
-        function changeLimit(l) { currentLimit = l; updateLimitUI(l); renderAll(); }
+        // 核心優化：優化 changeLimit 函式以同步更新標題
+        function changeLimit(l) { 
+            currentLimit = l; 
+            updateLimitUI(l); 
+            
+            // 動態更新標題文字
+            document.getElementById('top-title').innerHTML = `📈 近${l}期-出現機率排行榜 (Top 10)`;
+            document.getElementById('low-title').innerHTML = `📉 近${l}期-冷門號碼排行榜 (Low 10)`;
+            
+            renderAll(); 
+        }
+
         function updateLimitUI(l) { 
             document.querySelectorAll('.limit-btn').forEach(b => b.classList.remove('limit-active')); 
             document.getElementById(`btn-limit-${l}`).classList.add('limit-active'); 
