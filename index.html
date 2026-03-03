@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>數字 AI 分析儀 - 簡潔攻略版</title>
+    <title>數字 AI 分析儀 - 專家 2.0 強化版</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
@@ -37,29 +37,18 @@
         <div class="bg-slate-800 p-6 rounded-2xl border-l-8 border-indigo-400 shadow-xl">
             <h3 class="text-xl font-bold text-indigo-300 mb-4 flex items-center gap-2">數據分析範圍 (期數切換)</h3>
             <div class="grid grid-cols-5 gap-2 md:gap-3 text-sm">
-                <button onclick="changeLimit(1)" id="btn-limit-1" class="limit-btn bg-slate-700 py-2 rounded-lg font-bold border border-transparent">近 1 期</button>
-                <button onclick="changeLimit(2)" id="btn-limit-2" class="limit-btn bg-slate-700 py-2 rounded-lg font-bold border border-transparent">近 2 期</button>
-                <button onclick="changeLimit(3)" id="btn-limit-3" class="limit-btn bg-slate-700 py-2 rounded-lg font-bold border border-transparent">近 3 期</button>
-                <button onclick="changeLimit(4)" id="btn-limit-4" class="limit-btn bg-slate-700 py-2 rounded-lg font-bold border border-transparent">近 4 期</button>
-                <button onclick="changeLimit(5)" id="btn-limit-5" class="limit-btn bg-slate-700 py-2 rounded-lg font-bold border border-transparent">近 5 期</button>
-                <button onclick="changeLimit(6)" id="btn-limit-6" class="limit-btn bg-slate-700 py-2 rounded-lg font-bold border border-transparent">近 6 期</button>
-                <button onclick="changeLimit(7)" id="btn-limit-7" class="limit-btn bg-slate-700 py-2 rounded-lg font-bold border border-transparent">近 7 期</button>
-                <button onclick="changeLimit(8)" id="btn-limit-8" class="limit-btn bg-slate-700 py-2 rounded-lg font-bold border border-transparent">近 8 期</button>
-                <button onclick="changeLimit(9)" id="btn-limit-9" class="limit-btn bg-slate-700 py-2 rounded-lg font-bold border border-transparent">近 9 期</button>
-                <button onclick="changeLimit(10)" id="btn-limit-10" class="limit-btn limit-active py-2 rounded-lg font-bold border">近 10 期</button>
+                <script>
+                    for(let i=1; i<=10; i++) {
+                        document.write(`<button onclick="changeLimit(${i})" id="btn-limit-${i}" class="limit-btn bg-slate-700 py-2 rounded-lg font-bold border border-transparent ${i===10?'limit-active':''}">近 ${i} 期</button>`);
+                    }
+                </script>
             </div>
         </div>
 
         <div class="bg-slate-800 p-6 rounded-2xl border-l-8 border-rose-500 shadow-xl">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                    <h3 id="top-title" class="text-xl font-bold text-rose-400 mb-4">📈 近10期-出現機率排行榜 (Top 10)</h3>
-                    <div id="prob-rank" class="space-y-2 text-lg">尚未載入數據</div>
-                </div>
-                <div>
-                    <h3 id="low-title" class="text-xl font-bold text-blue-400 mb-4">📉 近10期-冷門號碼排行榜 (Low 10)</h3>
-                    <div id="prob-low-rank" class="space-y-2 text-lg">尚未載入數據</div>
-                </div>
+                <div><h3 id="top-title" class="text-xl font-bold text-rose-400 mb-4">📈 Top 10</h3><div id="prob-rank" class="space-y-2 text-lg">尚未載入</div></div>
+                <div><h3 id="low-title" class="text-xl font-bold text-blue-400 mb-4">📉 Low 10</h3><div id="prob-low-rank" class="space-y-2 text-lg">尚未載入</div></div>
             </div>
         </div>
 
@@ -81,27 +70,16 @@
                 <button onclick="setStrat('random')" id="btn-random" class="strat-btn bg-blue-600 p-3 rounded-xl font-bold">🌀 AI隨便挑</button>
             </div>
         </div>
-<p>
-            <h1>脆友的攻略推薦 是依照進群填寫的邏輯唷！！！</h1>
-            <h1>點擊一次 就會依照原邏輯 會“再次”選出號碼</h1>
 
-                </p>
         <div class="bg-slate-800 p-6 rounded-xl border-l-8 border-yellow-500 shadow-lg">
             <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                
-                <h3 id="expert-title" class="text-xl font-bold text-yellow-500">💡 脆友的攻略推薦 </h3>
-            
-                
-              
-        
+                <h3 id="expert-title" class="text-xl font-bold text-yellow-500">💡 脆友的攻略推薦</h3>
                 <div class="flex gap-1 bg-slate-900/50 p-1 rounded-lg">
-                    
-                    <button onclick="changeExpertBallCount(1)" id="eb-1" class="eb-btn px-3 py-1 rounded text-xs font-bold border border-transparent">1球</button>
-                    <button onclick="changeExpertBallCount(2)" id="eb-2" class="eb-btn px-3 py-1 rounded text-xs font-bold border border-transparent">2球</button>
-                    <button onclick="changeExpertBallCount(3)" id="eb-3" class="eb-btn expert-count-active px-3 py-1 rounded text-xs font-bold border border-transparent">3球</button>
-                    <button onclick="changeExpertBallCount(4)" id="eb-4" class="eb-btn px-3 py-1 rounded text-xs font-bold border border-transparent">4球</button>
-                    <button onclick="changeExpertBallCount(5)" id="eb-5" class="eb-btn px-3 py-1 rounded text-xs font-bold border border-transparent">5球</button>
-                    <button onclick="changeExpertBallCount(6)" id="eb-6" class="eb-btn px-3 py-1 rounded text-xs font-bold border border-transparent">6球</button>
+                    <script>
+                        for(let i=1; i<=6; i++) {
+                            document.write(`<button onclick="changeExpertBallCount(${i})" id="eb-${i}" class="eb-btn px-3 py-1 rounded text-xs font-bold border border-transparent ${i===3?'expert-count-active':''}">${i}球</button>`);
+                        }
+                    </script>
                 </div>
             </div>
             <div id="strat-logic" class="space-y-4 text-lg"></div>
@@ -119,30 +97,11 @@
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyB-udYSuPiA2CVOaFHW45O0i2DN_loc7lo",
-            authDomain: "bingo-ai-360ad.firebaseapp.com",
-            databaseURL: "https://bingo-ai-360ad-default-rtdb.firebaseio.com",
-            projectId: "bingo-ai-360ad",
-            storageBucket: "bingo-ai-360ad.firebasestorage.app",
-            messagingSenderId: "613330768290",
-            appId: "1:613330768290:web:a17d981e96fbc7726622fb",
-            measurementId: "G-2Y2KQYMYGX"
-        };
-        
+        const firebaseConfig = { apiKey: "AIzaSyB-udYSuPiA2CVOaFHW45O0i2DN_loc7lo", authDomain: "bingo-ai-360ad.firebaseapp.com", databaseURL: "https://bingo-ai-360ad-default-rtdb.firebaseio.com", projectId: "bingo-ai-360ad", storageBucket: "bingo-ai-360ad.firebasestorage.app", messagingSenderId: "613330768290", appId: "1:613330768290:web:a17d981e96fbc7726622fb", measurementId: "G-2Y2KQYMYGX" };
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-
-        let fullHistory = [];
-        let currentLimit = 10;
-        let strat = 'hot';
-        let currentBallCount = 6;
-        let expertBallCount = 3;
-        let expertPicks = null;
-
-        function shuffle(array) {
-            return array.sort(() => Math.random() - 0.5);
-        }
+        let fullHistory = [], currentLimit = 10, strat = 'hot', currentBallCount = 6, expertBallCount = 3;
+        const shuffle = (array) => array.sort(() => Math.random() - 0.5);
 
         function initRealtimeSync() {
             database.ref('bingo_data').on('value', (snapshot) => {
@@ -156,36 +115,15 @@
             });
         }
 
-        function calculateNGroups(history, counts) {
-            const all = Array.from({length: 80}, (_, i) => (i+1).toString().padStart(2, '0'));
-            const last = history[0].numbers;
-            const last2 = history[0].numbers.concat(history[1] ? history[1].numbers : []);
-            const counts5 = {};
-            fullHistory.slice(0, 5).map(h => h.numbers).flat().forEach(n => counts5[n] = (counts5[n]||0)+1);
-            const rnd = (arr) => shuffle([...arr]).slice(0, 10);
-            return {
-                n1: rnd(all.filter(n => counts[n] >= 2)).map(n => ({num: n, count: counts[n]})),
-                n2: rnd(all.filter(n => counts[n] === 2 && !last.includes(n))).map(n => ({num: n, count: counts[n]})),
-                n3: rnd(last).map(n => ({num: n, count: counts[n]})),
-                n4: rnd(all).slice(0, 10).map(n => ({num: n, count: counts[n]})),
-                n5: all.sort((a, b) => fullHistory.findIndex(h => h.numbers.includes(b)) - fullHistory.findIndex(h => h.numbers.includes(a))).slice(0, 10).map(n => ({num: n, count: counts[n]})),
-                n6: rnd(all.filter(n => parseInt(n) <= 10 && !last2.includes(n))).map(n => ({num: n, count: counts[n]})),
-                n7: rnd(all.filter(n => counts5[n] >= 3)).map(n => ({num: n, count: counts[n]}))
-            };
-        }
-
         function renderAll() {
             if (!fullHistory.length) return;
             const history = fullHistory.slice(0, currentLimit);
-            let counts = {};
-            for (let i = 1; i <= 80; i++) counts[i.toString().padStart(2, '0')] = 0;
+            let counts = {}; for (let i = 1; i <= 80; i++) counts[i.toString().padStart(2, '0')] = 0;
             history.map(h => h.numbers).flat().forEach(n => counts[n]++);
-            
-            const groups = calculateNGroups(history, counts);
             renderProbabilityRank(counts);
             renderStrategies(history, counts);
             renderPrediction(counts);
-            renderNGroups(groups);
+            renderNGroups(history, counts);
             renderHistoryList(history);
         }
 
@@ -203,73 +141,63 @@
             const prevNums = history[1].numbers;
             const allNums = Array.from({length: 80}, (_, i) => (i+1).toString().padStart(2, '0'));
 
-            let trailFreq = {};
-            for (let i = 1; i < history.length; i++) {
-                if (latestNums.some(n => history[i].numbers.includes(n))) {
-                    history[i-1].numbers.forEach(n => trailFreq[n] = (trailFreq[n] || 0) + 1);
-                }
-            }
+            // 1. Xij: 拖號候選
+            let trailFreq = {}; for (let i = 1; i < history.length; i++) { if (latestNums.some(n => history[i].numbers.includes(n))) history[i-1].numbers.forEach(n => trailFreq[n] = (trailFreq[n] || 0) + 1); }
             const xijPool = Object.entries(trailFreq).sort((a,b)=>b[1]-a[1]).slice(0, 15).map(e=>e[0]);
+            
+            // 2. 承: 上期在近5期比對
             const h5 = fullHistory.slice(0, 5);
             let f5 = {}; h5.forEach(h => h.numbers.forEach(n => f5[n] = (f5[n]||0)+1));
             const chengPool = [...prevNums].sort((a,b)=>(f5[b]||0)-(f5[a]||0));
+
+            // --- 新增：承 2.0 (前20期規律 + 低頻熱門號) ---
+            const last20 = fullHistory.slice(0, 20);
+            const last10 = fullHistory.slice(0, 10);
+            let f20 = {}; last20.forEach(h => h.numbers.forEach(n => f20[n] = (f20[n]||0)+1));
+            let f10 = {}; last10.forEach(h => h.numbers.forEach(n => f10[n] = (f10[n]||0)+1));
+            const cheng2Pool = allNums.filter(n => (f20[n] > 4) && (f10[n] <= 1)).concat(Object.keys(f20).sort((a,b)=>f20[b]-f20[a]).slice(0,10));
+
             const shawnPool = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0, 15).map(e=>e[0]);
             let tailMap = {}; latestNums.forEach(n => { const t = n.slice(-1); tailMap[t] = (tailMap[t]||0)+1; });
-            const bt = Object.entries(tailMap).sort((a,b)=>b[1]-a[1])[0][0];
-            const xiaoTianPool = allNums.filter(n => n.endsWith(bt));
+            const xiaoTianPool = allNums.filter(n => n.endsWith(Object.entries(tailMap).sort((a,b)=>b[1]-a[1])[0][0]));
             const serialPool = allNums.filter(n => latestNums.includes((parseInt(n)-1).toString().padStart(2,'0')) || latestNums.includes((parseInt(n)+1).toString().padStart(2,'0')));
 
-            const topPool = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]).slice(0, 15);
-            const lowPool = Object.keys(counts).sort((a,b)=>counts[a]-counts[b]).slice(0, 15);
-            const bobPool = [...shuffle(topPool).slice(0, 5), ...shuffle(lowPool).slice(0, 5)];
-
-            let yangPool = [];
-            const sortedLatest = [...latestNums].map(n=>parseInt(n)).sort((a,b)=>a-b);
-            for(let i=0; i<sortedLatest.length-1; i++){
-                if(sortedLatest[i+1] - sortedLatest[i] === 2) yangPool.push((sortedLatest[i]+1).toString().padStart(2, '0'));
-            }
-
-            const mixLinPool = [...shawnPool].concat(serialPool).slice(0, 20);
-
-            // 更新：更名為 Xij:
             const strats = [
                 { name: 'Xij:', color: 'text-yellow-500', pool: xijPool },
                 { name: '承', color: 'text-emerald-400', pool: chengPool },
+                { name: '承 2.0', color: 'text-emerald-300', pool: cheng2Pool },
                 { name: '中的', color: 'text-blue-400', pool: allNums },
                 { name: 'Shawn', color: 'text-orange-400', pool: shawnPool },
                 { name: '小天', color: 'text-pink-400', pool: xiaoTianPool },
                 { name: '暴暴龍', color: 'text-purple-400', pool: serialPool },
-                { name: 'Bob', color: 'text-cyan-400', pool: bobPool },
-                { name: 'Yang', color: 'text-lime-400', pool: yangPool.length ? yangPool : allNums },
-                { name: 'Mix Lin', color: 'text-amber-400', pool: mixLinPool }
+                { name: 'Bob', color: 'text-cyan-400', pool: [...allNums.slice(0,10), ...allNums.slice(-10)] },
+                { name: 'Yang', color: 'text-lime-400', pool: allNums.filter(n => latestNums.includes((parseInt(n)-1).toString().padStart(2,'0')) && latestNums.includes((parseInt(n)+1).toString().padStart(2,'0'))) },
+                { name: 'Mix Lin', color: 'text-amber-400', pool: shawnPool.slice(0,10) }
             ];
 
             document.getElementById('expert-title').innerText = `💡 脆友 ${expertBallCount}球 的攻略推薦`;
             document.getElementById('strat-logic').innerHTML = strats.map(s => {
                 const picks = shuffle([...(s.pool.length ? s.pool : allNums)]).slice(0, expertBallCount).sort();
-                // 移除選球按鈕：僅保留文字顯示
-                return `
-                <div class="py-2 border-b border-slate-700 flex justify-between items-center">
-                    <div><span class="${s.color} font-bold">${s.name}</span><span class="ml-2 text-slate-300 tracking-wider">${picks.join(' ')}</span></div>
-                </div>`;
+                return `<div class="py-2 border-b border-slate-700 flex justify-between items-center"><div><span class="${s.color} font-bold">${s.name}</span><span class="ml-2 text-slate-300 tracking-wider">${picks.join(' ')}</span></div></div>`;
             }).join('');
         }
 
-        function renderNGroups(groups) {
+        function renderNGroups(history, counts) {
+            const all = Array.from({length: 80}, (_, i) => (i+1).toString().padStart(2, '0'));
+            const last = history[0].numbers;
+            const last2 = history[0].numbers.concat(history[1] ? history[1].numbers : []);
+            const counts5 = {}; fullHistory.slice(0, 5).map(h => h.numbers).flat().forEach(n => counts5[n] = (counts5[n]||0)+1);
+            const rnd = (arr) => shuffle([...arr]).slice(0, 10);
+            const groups = { n1: rnd(all.filter(n => counts[n] >= 2)), n2: rnd(all.filter(n => counts[n] === 2 && !last.includes(n))), n3: rnd(last), n4: rnd(all), n5: all.sort((a, b) => fullHistory.findIndex(h => h.numbers.includes(b)) - fullHistory.findIndex(h => h.numbers.includes(a))).slice(0, 10), n6: rnd(all.filter(n => parseInt(n) <= 10 && !last2.includes(n))), n7: rnd(all.filter(n => counts5[n] >= 3)) };
             const nDefs = { n1: "N1 溫熱", n2: "N2 回歸", n3: "N3 拖號", n4: "N4 共伴", n5: "N5 破冰", n6: "N6 未開小號", n7: "N7 5熱" };
-            document.getElementById('n-groups').innerHTML = Object.entries(nDefs).map(([k, def]) => `
-                <div class="border-b border-slate-700 pb-4">
-                    <p class="text-emerald-300 mb-2"><b>${def}：</b></p>
-                    <div class="flex flex-wrap gap-x-4">${groups[k].map(i => `<span class="text-slate-300 font-bold text-xl">${i.num}<sub>.${i.count}</sub></span>`).join('')}</div>
-                </div>`).join('');
+            document.getElementById('n-groups').innerHTML = Object.entries(nDefs).map(([k, def]) => `<div class="border-b border-slate-700 pb-4"><p class="text-emerald-300 mb-2"><b>${def}：</b></p><div class="flex flex-wrap gap-x-4">${groups[k].map(i => `<span class="text-slate-300 font-bold text-xl">${i}<sub>.${counts[i]||0}</sub></span>`).join('')}</div></div>`).join('');
         }
 
         function changeExpertBallCount(n) { expertBallCount = n; document.querySelectorAll('.eb-btn').forEach(b => b.classList.remove('expert-count-active')); document.getElementById('eb-' + n).classList.add('expert-count-active'); renderAll(); }
         function renderPrediction(counts) {
-            let res = [];
-            const sortedNums = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
-            if (strat === 'random') { res = shuffle(Object.keys(counts)).slice(0, currentBallCount).map(n=>({num:n,count:counts[n]||0})); } 
-            else { const poolSize = strat === 'hot' ? 10 : 15; const pool = sortedNums.slice(0, poolSize); res = shuffle(pool).slice(0, currentBallCount).map(n => ({ num: n, count: counts[n] })); }
+            let res = []; const sortedNums = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+            if (strat === 'random') res = shuffle(Object.keys(counts)).slice(0, currentBallCount).map(n=>({num:n,count:counts[n]||0}));
+            else { const pool = sortedNums.slice(0, 15); res = shuffle(pool).slice(0, currentBallCount).map(n => ({ num: n, count: counts[n] })); }
             document.getElementById('pred-box').innerHTML = res.map(i => `<div class="ball bg-gradient-to-tr from-yellow-400 to-yellow-600 text-slate-900 shadow-xl">${i.num}<sub>.${i.count}</sub></div>`).join('');
         }
         function changeLimit(l) { currentLimit = l; document.querySelectorAll('.limit-btn').forEach(b => b.classList.remove('limit-active')); document.getElementById(`btn-limit-${l}`).classList.add('limit-active'); document.getElementById('top-title').innerText = `📈 近${l}期-出現機率排行榜 (Top 10)`; document.getElementById('low-title').innerText = `📉 近${l}期-冷門號碼排行榜 (Low 10)`; renderAll(); }
