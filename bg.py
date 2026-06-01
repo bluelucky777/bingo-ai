@@ -15,8 +15,6 @@ from bs4 import BeautifulSoup
 from firebase_admin import credentials, db
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 
 MAX_HISTORY = 100  # 加大窗口，回測需要至少 80+ 期
 
@@ -43,7 +41,9 @@ def fetch_bingo_now():
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
 
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    # Selenium 4.6+ 內建 Selenium Manager 會自動找系統 chromedriver
+    # （GitHub Actions 的 browser-actions/setup-chrome@v1 已在 PATH 裝好）
+    driver = webdriver.Chrome(options=chrome_options)
     url = "https://lotto.auzonet.com/bingobingoV1.php"
 
     try:
