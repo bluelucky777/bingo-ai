@@ -55,7 +55,9 @@ def fetch_bingo_now():
         driver.quit()
 
         new_records = []
-        rows = soup.find_all("tr", class_=re.compile(r"list_tr|list_tr2"))
+        # 2026 改版後的 tr class 是 bingo_text_row
+        rows = soup.find_all("tr", class_="bingo_text_row")
+        print(f"📊 抓到 {len(rows)} 個 bingo_text_row")
 
         for row in rows:
             if len(new_records) >= MAX_HISTORY:
@@ -64,13 +66,20 @@ def fetch_bingo_now():
             if len(cols) < 2:
                 continue
 
+            # 期數：第一個 <td> 內，9 位數
             period_match = re.search(r'(\d{9,10})', cols[0].get_text())
             if not period_match:
                 continue
             period = period_match.group(1)
 
-            cell_html = str(cols[1])
-            found_nums = sorted(list(set(re.findall(r'[nN][bB](\d{2})', cell_html))))
+            # 號碼：<td class="BBALL"> 內，純文字 1-2 位數
+            ball_td = row.find("td", class_="BBALL")
+            if not ball_td:
+                continue
+            text = ball_td.get_text(separator=' ')
+            # 提取所有 1-80 的整數（過濾無關數字）
+            raw_nums = re.findall(r'\b(\d{1,2})\b', text)
+            found_nums = sorted(set(n.zfill(2) for n in raw_nums if 1 <= int(n) <= 80))
 
             if len(found_nums) >= 20:
                 new_records.append({"period": period, "numbers": found_nums[:20]})
