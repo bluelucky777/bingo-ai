@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: 369-bingo-ai
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn api:app --workers 2 --timeout 60 --bind 0.0.0.0:$PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: FIREBASE_CONFIG
+        sync: false  # 在 Render dashboard 手動設定
+      - key: FIREBASE_DATABASE_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false  # 部署後改成你的前端網址 (e.g. https://xxx.vercel.app)

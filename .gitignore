@@ -1,0 +1,32 @@
+# 本機快取 / 編譯
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+
+# 本機開發 fallback 資料（上線後從 Firebase 讀，不需 commit）
+history.json
+
+# 早期試做版（已棄用）
+_archive/
+
+# Flask / Python 環境
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# 開發 log
+*.log
+flask.log
+
+# 編輯器
+.vscode/
+.idea/
+*.swp
+
+# 環境變數（千萬別 commit Firebase service account）
+.env
+.env.local
+firebase-config.json
+service-account*.json

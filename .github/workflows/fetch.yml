@@ -1,0 +1,39 @@
+name: Fetch BINGO Data
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # 每 5 分鐘
+  workflow_dispatch:  # 手動觸發
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scraper
+        env:
+          FIREBASE_CONFIG: ${{ secrets.FIREBASE_CONFIG }}
+          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+        run: python bg.py
+
+  keep-alive:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - name: Ping Render to prevent cold start
+        run: |
+          curl -fsS --max-time 30 "${{ secrets.RENDER_API_URL }}/api/health" || echo "Ping failed, will retry next cycle"
