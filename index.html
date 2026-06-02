@@ -259,14 +259,29 @@
         let lastPeriodFromApi = null;
         let analysisTab = 'n-groups';  // n-groups | g-strats | star-levels
 
+        // === Loading 狀態切換：disable 所有切換鈕、提示載入中 ===
+        function setLoading(loading) {
+            document.querySelectorAll('.limit-btn, .count-btn, .eb-btn').forEach(b => {
+                b.disabled = loading;
+                b.style.opacity = loading ? '0.5' : '';
+                b.style.cursor = loading ? 'wait' : 'pointer';
+                b.style.pointerEvents = loading ? 'none' : '';
+            });
+            if (loading) {
+                document.getElementById('cur-period').innerText = '⏳ 載入中…（雲端冷啟動最長約 30 秒，請稍候）';
+            }
+        }
+
         // === 取資料：打 Flask API ===
         async function fetchAnalysis() {
             // 取消前一個還沒回的請求避免 race
             if (inflightCtrl) inflightCtrl.abort();
-            inflightCtrl = new AbortController();
+            const myCtrl = new AbortController();
+            inflightCtrl = myCtrl;
+            setLoading(true);
             const url = `${API_BASE}/api/predict?limit=${currentLimit}&strategy=${strat}&ball_count=${currentBallCount}&expert_count=${expertBallCount}`;
             try {
-                const resp = await fetch(url, { signal: inflightCtrl.signal });
+                const resp = await fetch(url, { signal: myCtrl.signal });
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const data = await resp.json();
                 if (data.error) throw new Error(data.error);
@@ -275,6 +290,9 @@
                 if (e.name === 'AbortError') return;
                 console.error('❌ 取得分析失敗：', e);
                 document.getElementById('cur-period').innerText = `⚠️ API 連線失敗：${e.message}`;
+            } finally {
+                // 只有當這個 controller 仍是最新的（沒被新請求取代），才解除 loading
+                if (inflightCtrl === myCtrl) setLoading(false);
             }
         }
 
