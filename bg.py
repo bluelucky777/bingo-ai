@@ -1,22 +1,26 @@
 """
 369 BINGO 爬蟲 — 從 lotto.auzonet.com 抓最近 N 期推 Firebase RTDB
 跑法：GitHub Actions 每 5 分鐘排程觸發
+
+注意：來源網站是靜態 HTML（無 JS 渲染），用 requests + BeautifulSoup
+比 Selenium 快 ~30 倍、失敗點更少。若哪天網站改 JS render 才需再裝回 Selenium。
 """
 import datetime
 import json
 import os
 import re
 import sys
-import time
 import traceback
 
 import firebase_admin
+import requests
 from bs4 import BeautifulSoup
 from firebase_admin import credentials, db
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 
 MAX_HISTORY = 100  # 加大窗口，回測需要至少 80+ 期
+URL = "https://lotto.auzonet.com/bingobingoV1.php"
+UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+REQUEST_TIMEOUT = 15
 
 
 def _init_firebase():
@@ -34,31 +38,18 @@ def _init_firebase():
 
 
 def fetch_bingo_now():
-    chrome_options = Options()
-    chrome_options.add_argument("--headless=new")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--window-size=1920,1080")
-
-    # Selenium 4.6+ 內建 Selenium Manager 會自動找系統 chromedriver
-    # （GitHub Actions 的 browser-actions/setup-chrome@v1 已在 PATH 裝好）
-    driver = webdriver.Chrome(options=chrome_options)
-    url = "https://lotto.auzonet.com/bingobingoV1.php"
-
     try:
-        print(f"🚀 正在前往爬取數據：{url}")
-        driver.get(url)
-        time.sleep(12)
+        print(f"🚀 正在前往爬取數據：{URL}")
+        resp = requests.get(URL, headers={"User-Agent": UA}, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+        print(f"   HTTP {resp.status_code}, {len(resp.content)} bytes, {resp.elapsed.total_seconds():.2f}s")
 
-        soup = BeautifulSoup(driver.page_source, "html.parser")
-        driver.quit()
-
-        new_records = []
+        soup = BeautifulSoup(resp.text, "html.parser")
         # 2026 改版後的 tr class 是 bingo_text_row
         rows = soup.find_all("tr", class_="bingo_text_row")
         print(f"📊 抓到 {len(rows)} 個 bingo_text_row")
 
+        new_records = []
         for row in rows:
             if len(new_records) >= MAX_HISTORY:
                 break
@@ -66,7 +57,7 @@ def fetch_bingo_now():
             if len(cols) < 2:
                 continue
 
-            # 期數：第一個 <td> 內，9 位數
+            # 期數：第一個 <td> 內，9-10 位數
             period_match = re.search(r'(\d{9,10})', cols[0].get_text())
             if not period_match:
                 continue
@@ -85,7 +76,7 @@ def fetch_bingo_now():
                 new_records.append({"period": period, "numbers": found_nums[:20]})
 
         if not new_records:
-            print("⚠️ 沒抓到任何記錄（網頁結構可能變了）")
+            print("⚠️ 沒抓到任何記錄（網頁結構可能變了，請檢查 bingo_text_row 選擇器）")
             return False
 
         # 合併現有歷史避免回測樣本被洗掉
@@ -110,13 +101,12 @@ def fetch_bingo_now():
         print(f"🔥 Firebase 同步成功！期數：{merged[0]['period']}，總筆數：{len(merged)}，時間：{data_to_save['last_update']}")
         return True
 
+    except requests.exceptions.RequestException as e:
+        print(f"⚠️ 網路錯誤：{type(e).__name__}: {e}")
+        return False
     except Exception as e:
         print(f"⚠️ 錯誤：{type(e).__name__}: {e}")
         traceback.print_exc()
-        try:
-            driver.quit()
-        except Exception:
-            pass
         return False
 
 
