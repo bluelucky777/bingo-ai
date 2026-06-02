@@ -399,9 +399,18 @@
                 `<div class="ball bg-gradient-to-tr from-yellow-400 to-yellow-600 text-slate-900 shadow-xl">${i.num}<sub>.${i.count}</sub></div>`
             ).join('');
             copyBtn.disabled = false;
-            // 下一期顯示
-            const nextPeriod = lastPeriod ? String(parseInt(lastPeriod) + 1) : '--';
+            // 下一期顯示：從 history 推算步進（多數為 10，跨日可能不同），fallback 10
+            const nextPeriod = lastPeriod ? String(parseInt(lastPeriod) + getPeriodStep()) : '--';
             document.getElementById('next-period-display').innerText = nextPeriod;
+        }
+
+        // 從最近兩筆 history 推算期數步進（多數為 10，跨日 anomaly 可能 250）
+        function getPeriodStep() {
+            if (latestHistory.length < 2) return 10;
+            const p0 = parseInt(latestHistory[0].period);
+            const p1 = parseInt(latestHistory[1].period);
+            const diff = p0 - p1;
+            return (diff > 0 && diff <= 50) ? diff : 10;  // anomaly fallback
         }
 
         function copyPredictionToBet() {
@@ -569,15 +578,10 @@
                 alert('期數資料尚未載入，請稍候');
                 return;
             }
-            const startPeriodInt = parseInt(lastPeriodFromApi) + 1;
-            if (Number.isNaN(startPeriodInt)) {
-                alert('期數格式異常，無法推算下一期');
-                return;
-            }
             const bet = {
                 id: 'b_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
                 created_at: new Date().toLocaleString('zh-TW', { hour12: false }),
-                start_period: String(startPeriodInt),
+                bet_period: String(lastPeriodFromApi),  // 下注當下的最新期數（結算時的錨點）
                 periods: betPeriods,
                 numbers: [...betSelected].sort(),
                 results: []  // 結算後填入
@@ -616,38 +620,53 @@
             renderBetHistory();
         }
 
-        // 自動結算：對所有下注，根據 latestHistory 比對開獎號碼
+        // 自動結算：根據 latestHistory 的索引比對開獎號碼
+        // 設計：用 bet_period 在 history（desc 排序）中的位置當錨點，往新方向取 N 筆作為下注追蹤期數
+        // 好處：不需算術預測，可避開期數步進非定值（多數 10、跨日可能 250）造成的偏移
         function settleAllBets() {
             const bets = loadBets();
             if (!bets.length || !latestHistory.length) return;
-            // 建 period → numbers 對照表
-            const historyMap = {};
-            latestHistory.forEach(h => { historyMap[h.period] = h.numbers; });
 
             let dirty = false;
             bets.forEach(bet => {
-                const startInt = parseInt(bet.start_period);
-                if (Number.isNaN(startInt)) return;
-                bet.results = [];
+                // 相容舊紀錄：v1 沒有 bet_period，僅有 start_period（=當時 last_period + 1，bug 值）
+                //   → 回推 bet_period = start_period - 1 = 當時真實的 last_period
+                const betPeriod = bet.bet_period
+                    || (bet.start_period ? String(parseInt(bet.start_period) - 1) : null);
+                if (!betPeriod) return;
+
+                // 在 history 中找下注錨點位置；history 是 desc 排序（index 0 最新）
+                const betIdx = latestHistory.findIndex(h => h.period === betPeriod);
+                const newResults = [];
                 for (let i = 0; i < bet.periods; i++) {
-                    const targetPeriod = String(startInt + i);
-                    const drawn = historyMap[targetPeriod];
-                    if (drawn) {
-                        const hits = bet.numbers.filter(n => drawn.includes(n));
-                        bet.results.push({
-                            period: targetPeriod,
-                            drawn,
+                    if (betIdx === -1) {
+                        // 下注期數已經滾出 history 視窗，無法判斷（罕見，後端已保證至少 60 期）
+                        newResults.push({ settled: false, out_of_range: true });
+                        continue;
+                    }
+                    // 下注後第 (i+1) 期 = history 索引 betIdx - 1 - i（往更新方向）
+                    const targetIdx = betIdx - 1 - i;
+                    if (targetIdx < 0) {
+                        newResults.push({ settled: false });  // 尚未開獎
+                    } else {
+                        const h = latestHistory[targetIdx];
+                        const hits = bet.numbers.filter(n => h.numbers.includes(n));
+                        newResults.push({
+                            period: h.period,
+                            drawn: h.numbers,
                             hit_count: hits.length,
                             hits,
                             settled: true
                         });
-                        dirty = true;
-                    } else {
-                        bet.results.push({
-                            period: targetPeriod,
-                            settled: false
-                        });
                     }
+                }
+
+                // 只在 results 真有變化時才標 dirty 避免無謂寫入
+                if (JSON.stringify(bet.results) !== JSON.stringify(newResults)) {
+                    bet.results = newResults;
+                    // 順手把舊紀錄補上 bet_period（清掉 start_period 留個記號用 bet_period_inferred 標記）
+                    if (!bet.bet_period) bet.bet_period = betPeriod;
+                    dirty = true;
                 }
             });
             if (dirty) saveBets(bets);
@@ -662,15 +681,21 @@
             }
             box.innerHTML = bets.map(bet => {
                 const settledResults = bet.results.filter(r => r.settled);
+                const outOfRange = bet.results.some(r => r.out_of_range);
                 const totalHits = settledResults.reduce((sum, r) => sum + r.hit_count, 0);
                 const settledCount = settledResults.length;
-                const summary = settledCount === bet.periods
-                    ? `<span class="bet-hit">已結算完畢：${bet.periods} 期共中 ${totalHits} 個號碼</span>`
-                    : `<span class="bet-pending">已開 ${settledCount}/${bet.periods} 期，目前累計中 ${totalHits} 個（剩餘 ${bet.periods - settledCount} 期未開獎）</span>`;
+                const summary = outOfRange
+                    ? `<span class="text-rose-400">⚠️ 下注期數已超出資料範圍，無法結算（可手動刪除）</span>`
+                    : settledCount === bet.periods
+                        ? `<span class="bet-hit">已結算完畢：${bet.periods} 期共中 ${totalHits} 個號碼</span>`
+                        : `<span class="bet-pending">已開 ${settledCount}/${bet.periods} 期，目前累計中 ${totalHits} 個（剩餘 ${bet.periods - settledCount} 期未開獎）</span>`;
 
-                const rowsHtml = bet.results.map(r => {
+                const rowsHtml = bet.results.map((r, idx) => {
+                    if (r.out_of_range) {
+                        return `<div class="text-xs flex gap-2 py-1 border-t border-slate-700/40"><span class="font-mono text-slate-400">第 ${idx + 1} 期</span><span class="text-rose-400">資料缺漏</span></div>`;
+                    }
                     if (!r.settled) {
-                        return `<div class="text-xs flex gap-2 py-1 border-t border-slate-700/40"><span class="font-mono text-slate-400">${r.period}</span><span class="bet-pending">未開獎</span></div>`;
+                        return `<div class="text-xs flex gap-2 py-1 border-t border-slate-700/40"><span class="font-mono text-slate-400">第 ${idx + 1} 期</span><span class="bet-pending">未開獎</span></div>`;
                     }
                     const hitSet = new Set(r.hits);
                     const numsHtml = bet.numbers.map(n => hitSet.has(n)
@@ -685,14 +710,19 @@
                     </div>`;
                 }).join('');
 
+                // 顯示下注當下的期數（v1 舊紀錄用回推值，會帶 _inferred 標記提示）
+                const betPeriodLabel = bet.bet_period
+                    ? `下注時期數：<span class="font-mono text-indigo-300">${bet.bet_period}</span>`
+                    : `<span class="text-slate-500">（舊紀錄無期數資料）</span>`;
+
                 return `
                     <div class="bg-slate-900/40 p-3 rounded-lg border border-slate-700">
                         <div class="flex justify-between items-center mb-2">
-                            <div>
-                                <span class="text-xs text-slate-500">${bet.created_at}</span>
-                                <span class="ml-2 text-xs text-slate-400">下 ${bet.periods} 期 · ${bet.numbers.length} 顆</span>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-xs text-slate-500">${bet.created_at}</div>
+                                <div class="text-xs text-slate-400 mt-0.5">${betPeriodLabel} · 追蹤 ${bet.periods} 期 · ${bet.numbers.length} 顆</div>
                             </div>
-                            <button onclick="deleteBet('${bet.id}')" class="text-xs text-slate-500 hover:text-rose-400">🗑️</button>
+                            <button onclick="deleteBet('${bet.id}')" class="text-xs text-slate-500 hover:text-rose-400 ml-2">🗑️</button>
                         </div>
                         <div class="mb-2 tracking-wider text-fuchsia-300 font-bold">${bet.numbers.join(' ')}</div>
                         <div class="text-sm mb-2">${summary}</div>

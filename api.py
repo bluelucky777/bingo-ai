@@ -88,7 +88,11 @@ def predict():
         if not full_history:
             return jsonify({"error": "資料庫為空，請等候爬蟲首次同步"}), 200
 
+        # 分析範圍受 limit 控制（給機率排行 / n_groups / 策略預測用）
         history_data = full_history[:limit]
+        # 顯示與下注結算用：至少 60 期，與 limit 解耦
+        # 避免使用者選 limit=10 時，10 期下注因 history 太短永遠結不掉
+        display_history = full_history[:max(limit, 60)]
         nums_only = [item['numbers'] for item in history_data]
         full_nums = [item['numbers'] for item in full_history]
 
@@ -131,7 +135,7 @@ def predict():
             "last_period": full_history[0]['period'],
             "last_update": last_update,
             "current_limit": len(history_data),
-            "history": history_data,
+            "history": display_history,
             "prob_rank": {"top10": top10, "low10": low10},
             "n_groups": n_groups,
             "prediction": prediction,
