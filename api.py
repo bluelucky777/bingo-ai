@@ -26,11 +26,13 @@ from back import (
 app = Flask(__name__)
 
 # CORS：開發允許所有 origin，部署時用 ALLOWED_ORIGINS env 收斂
-allowed_origins = os.environ.get('ALLOWED_ORIGINS', '*')
-if allowed_origins == '*':
+# .strip() + 每個 origin 也 strip：防止複製貼上 env var 時殘留換行/空白
+allowed_origins = os.environ.get('ALLOWED_ORIGINS', '*').strip()
+if allowed_origins == '*' or not allowed_origins:
     CORS(app)
 else:
-    CORS(app, origins=allowed_origins.split(','))
+    origins = [o.strip() for o in allowed_origins.split(',') if o.strip()]
+    CORS(app, resources={r"/api/*": {"origins": origins}})
 
 
 # ---------- Firebase 初始化 ----------
