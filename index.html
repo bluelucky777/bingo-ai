@@ -115,9 +115,9 @@
                 </script>
             </div>
 
-            <!-- 🎯 產生預測號碼（手動觸發，避免點選項就跳號）-->
-            <button onclick="fetchAnalysis()" id="run-analysis-btn" class="w-full bg-yellow-500 hover:bg-yellow-400 text-slate-900 py-3 rounded-lg font-bold text-base mb-4 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-                🎯 產生預測號碼
+            <!-- 🎯 套用設定按鈕（策略立即生效，其他設定要按這顆才套用）-->
+            <button onclick="applyAndFetch()" id="run-analysis-btn" class="w-full bg-yellow-500 hover:bg-yellow-400 text-slate-900 py-3 rounded-lg font-bold text-base mb-4 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                🎯 套用設定並重新預測
             </button>
 
             <!-- 預測結果 -->
@@ -262,7 +262,10 @@
         const database = firebase.database();
 
         // === 狀態 ===
+        // 已套用設定（給 API 用）：策略立即套用、其他設定需按按鈕才套用
         let currentLimit = 10, strat = 'hot', currentBallCount = 6, expertBallCount = 3;
+        // 使用者選擇中設定（pending，等按鈕才會 sync 進 current）
+        let pendingLimit = 10, pendingBallCount = 6, pendingExpertBallCount = 3;
         let lastPeriodSeen = null;
         let inflightCtrl = null;
 
@@ -274,6 +277,8 @@
         let lastPeriodFromApi = null;
         let analysisTab = 'n-groups';  // n-groups | g-strats | star-levels
         let historyTab = 10;  // 10 / 20 / 30 — 對應 1-10 / 11-20 / 21-30 期
+        let currentExperts = [];  // 最新一次 fetchAnalysis 拿到的脆友策略（給「一鍵帶入」用）
+        let betSource = null;  // 當前下注區的來源策略名稱（被一鍵帶入時設定，手動編號清除）
 
         // === Loading 狀態切換：disable 所有切換鈕、提示載入中 ===
         function setLoading(loading) {
@@ -307,7 +312,8 @@
                 const data = await resp.json();
                 if (data.error) throw new Error(data.error);
                 renderAll(data);
-                clearDirty();  // 成功更新後清除 dirty 視覺
+                // 注意：clearDirty() 只在 applyAndFetch 後呼叫，策略切換不清 dirty
+                // 這樣使用者改了球數沒按按鈕但點了策略，dirty 提示仍在，提醒「球數變更尚未套用」
             } catch (e) {
                 if (e.name === 'AbortError') return;
                 console.error('❌ 取得分析失敗：', e);
@@ -337,6 +343,10 @@
         function renderAll(data) {
             document.getElementById('cur-period').innerText = `最新期數：${data.last_period}`;
             document.getElementById('update-time').innerText = "最後更新時間：" + (data.last_update || "未知");
+            // 機率排行榜標題用 API 回傳的 current_limit（已套用的 limit），避免使用者按 pending 後 title 不一致
+            const appliedLimit = data.current_limit || currentLimit;
+            document.getElementById('top-title').innerText = `📈 近${appliedLimit}期-出現機率排行榜 (Top 10)`;
+            document.getElementById('low-title').innerText = `📉 近${appliedLimit}期-冷門號碼排行榜 (Low 10)`;
             latestHistory = data.history || [];
             lastPeriodFromApi = data.last_period;
             renderProbabilityRank(data.prob_rank);
@@ -439,13 +449,27 @@
             if (!currentPrediction || !currentPrediction.length) return;
             const nums = currentPrediction.map(p => p.num).slice(0, 10);
             betSelected = new Set(nums);
+            betSource = STRAT_LABEL[strat] || strat;  // 記錄是哪個策略帶入的
             renderBetGrid();
             renderBetSelected();
             // 滾到右欄下注區
             document.getElementById('bet-number-grid').scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
+        // 脆友某條策略一鍵帶入下注區
+        function copyExpertToBet(idx) {
+            const s = currentExperts[idx];
+            if (!s || !s.picks) return;
+            const nums = s.picks.slice(0, 10);
+            betSelected = new Set(nums);
+            betSource = `脆友：${s.name}`;
+            renderBetGrid();
+            renderBetSelected();
+            document.getElementById('bet-number-grid').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
         function renderExpertStrategies(experts) {
+            currentExperts = experts || [];
             document.getElementById('expert-title').innerText = `💡 脆友 ${expertBallCount}球 的攻略推薦`;
             if (!experts || !experts.length) {
                 document.getElementById('strat-logic').innerHTML = '<p class="text-slate-500">尚未載入</p>';
@@ -454,9 +478,10 @@
             const colors = ['text-yellow-500', 'text-emerald-400', 'text-emerald-300', 'text-blue-400', 'text-orange-400', 'text-pink-400', 'text-purple-400', 'text-cyan-400', 'text-lime-400', 'text-amber-400'];
             document.getElementById('strat-logic').innerHTML = experts.map((s, i) => `
                 <div class="py-2 border-b border-slate-700">
-                    <div class="flex justify-between items-center">
-                        <span class="${colors[i % colors.length]} font-bold">${s.name}</span>
-                        <span class="text-slate-300 tracking-wider">${s.picks.join(' ')}</span>
+                    <div class="flex flex-wrap justify-between items-center gap-2">
+                        <span class="${colors[i % colors.length]} font-bold flex-shrink-0">${s.name}</span>
+                        <span class="text-slate-300 tracking-wider flex-1 text-right min-w-0 break-all">${s.picks.join(' ')}</span>
+                        <button onclick="copyExpertToBet(${i})" class="bg-cyan-600 hover:bg-cyan-500 px-2 py-1 rounded text-xs font-bold whitespace-nowrap flex-shrink-0">⚡ 一鍵帶入</button>
                     </div>
                     <div class="text-xs text-slate-500 mt-1">${s.desc}</div>
                 </div>
@@ -539,32 +564,40 @@
             btn.innerText = '🎯 重新產生預測';
         }
 
-        // === 按鈕事件：只改狀態 + 視覺，不打 API ===
+        // === 按鈕事件 ===
+        // 非策略設定：只改 pending + 視覺 + 標 dirty，不打 API
         function changeLimit(l) {
-            currentLimit = l;
+            pendingLimit = l;
             document.querySelectorAll('.limit-btn').forEach(b => b.classList.remove('limit-active'));
             document.getElementById(`btn-limit-${l}`).classList.add('limit-active');
-            document.getElementById('top-title').innerText = `📈 近${l}期-出現機率排行榜 (Top 10)`;
-            document.getElementById('low-title').innerText = `📉 近${l}期-冷門號碼排行榜 (Low 10)`;
             markDirty();
         }
         function changeBallCount(c) {
-            currentBallCount = c;
+            pendingBallCount = c;
             document.querySelectorAll('.count-btn').forEach(b => b.classList.remove('count-active'));
             document.getElementById('btn-count-' + c).classList.add('count-active');
             markDirty();
         }
         function changeExpertBallCount(n) {
-            expertBallCount = n;
+            pendingExpertBallCount = n;
             document.querySelectorAll('.eb-btn').forEach(b => b.classList.remove('expert-count-active'));
             document.getElementById('eb-' + n).classList.add('expert-count-active');
             markDirty();
         }
+        // 策略：立即套用、立即打 API（用 current 既有套用設定 + 新策略）
         function setStrat(s) {
             strat = s;
             document.querySelectorAll('.strat-btn').forEach(b => b.classList.remove('ring-4', 'ring-white/50'));
             document.getElementById('btn-' + s).classList.add('ring-4', 'ring-white/50');
-            markDirty();
+            fetchAnalysis();
+        }
+        // 「設定已變更」按鈕：把 pending 同步進 current，再 fetch
+        async function applyAndFetch() {
+            currentLimit = pendingLimit;
+            currentBallCount = pendingBallCount;
+            expertBallCount = pendingExpertBallCount;
+            await fetchAnalysis();
+            clearDirty();
         }
 
         function setAnalysisTab(tab) {
@@ -579,7 +612,7 @@
         // 推薦下注 + 下注系統 + 紀錄 + 自動結算
         // ============================================================
 
-        const STRAT_LABEL = { pure_hot: '🌶️ 純熱門', hot: '🔥 追熱門', balanced: '⚖️ 均衡', luck: '🎲 拼運氣' };
+        const STRAT_LABEL = { pure_hot: '🌶️ 純熱門', hot: '🔥 追熱門', balanced: '⚖️ 均衡', luck: '🎲 拼運氣', random: '🌀 AI隨便挑' };
 
         function renderBetGrid() {
             const grid = document.getElementById('bet-number-grid');
@@ -602,6 +635,7 @@
                 }
                 betSelected.add(num);
             }
+            betSource = null;  // 手動編號 → 清除一鍵帶入來源
             renderBetGrid();
             renderBetSelected();
         }
@@ -624,6 +658,7 @@
 
         function clearBetSelection() {
             betSelected.clear();
+            betSource = null;
             renderBetGrid();
             renderBetSelected();
         }
@@ -640,12 +675,14 @@
                 bet_period: String(lastPeriodFromApi),  // 下注當下的最新期數（結算時的錨點）
                 periods: betPeriods,
                 numbers: [...betSelected].sort(),
+                source: betSource || '手動選號',  // 紀錄選號來源（哪個策略 / 手動）
                 results: []  // 結算後填入
             };
             const bets = loadBets();
             bets.unshift(bet);
             saveBets(bets);
             betSelected.clear();
+            betSource = null;
             renderBetGrid();
             renderBetSelected();
             settleAllBets();
@@ -779,6 +816,10 @@
                 const betPeriodLabel = bet.bet_period
                     ? `下注時期數：<span class="font-mono text-indigo-300">${bet.bet_period}</span>`
                     : `<span class="text-slate-500">（舊紀錄無期數資料）</span>`;
+                // 顯示選號來源（哪個策略 / 手動）；舊紀錄無此欄位顯示「—」
+                const sourceLabel = bet.source
+                    ? `<span class="inline-block bg-cyan-900/40 text-cyan-300 px-2 py-0.5 rounded text-xs">${bet.source}</span>`
+                    : `<span class="text-slate-600 text-xs">—</span>`;
 
                 return `
                     <div class="bg-slate-900/40 p-3 rounded-lg border border-slate-700">
@@ -786,6 +827,7 @@
                             <div class="flex-1 min-w-0">
                                 <div class="text-xs text-slate-500">${bet.created_at}</div>
                                 <div class="text-xs text-slate-400 mt-0.5">${betPeriodLabel} · 追蹤 ${bet.periods} 期 · ${bet.numbers.length} 顆</div>
+                                <div class="mt-1">選擇的項目：${sourceLabel}</div>
                             </div>
                             <button onclick="deleteBet('${bet.id}')" class="text-xs text-slate-500 hover:text-rose-400 ml-2">🗑️</button>
                         </div>
