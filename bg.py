@@ -59,11 +59,13 @@ def fetch_bingo_now():
             if len(cols) < 2:
                 continue
 
-            # 期數：第一個 <td> 內，9-10 位數
-            period_match = re.search(r'(\d{9,10})', cols[0].get_text())
-            if not period_match:
+            # 期數：必須從 <b> 拿，否則 get_text() 會把後面 "15:00" 黏進來被 regex 誤抓
+            b_tag = cols[0].find("b")
+            if not b_tag:
                 continue
-            period = period_match.group(1)
+            period = b_tag.get_text(strip=True)
+            if not re.fullmatch(r'\d{8,10}', period):
+                continue
 
             # 號碼：<td class="BBALL"> 內，純文字 1-2 位數
             ball_td = row.find("td", class_="BBALL")
@@ -85,6 +87,10 @@ def fetch_bingo_now():
         ref = db.reference('bingo_data')
         existing = ref.get() or {}
         existing_records = existing.get('records', [])
+
+        # 一次性遷移：濾掉與新格式長度不同的舊紀錄（舊 regex bug 抓成 10 位）
+        new_period_len = len(new_records[0]['period'])
+        existing_records = [r for r in existing_records if len(r.get('period', '')) == new_period_len]
 
         # 用 period 去重，新爬到的優先
         seen = set()

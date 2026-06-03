@@ -631,12 +631,21 @@
             if (!bets.length || !latestHistory.length) return;
 
             let dirty = false;
+            // 偵測當前 history 期數位數（修 bug 後變 9 位，舊資料是 10 位）
+            const historyPeriodLen = latestHistory[0] ? latestHistory[0].period.length : 0;
+
             bets.forEach(bet => {
                 // 相容舊紀錄：v1 沒有 bet_period，僅有 start_period（=當時 last_period + 1，bug 值）
                 //   → 回推 bet_period = start_period - 1 = 當時真實的 last_period
-                const betPeriod = bet.bet_period
+                let betPeriod = bet.bet_period
                     || (bet.start_period ? String(parseInt(bet.start_period) - 1) : null);
                 if (!betPeriod) return;
+
+                // 一次性遷移：舊期數是 10 位（含時間第一位的 bug），新 history 是 9 位
+                //   → 砍掉尾位讓舊下注紀錄能對上新 history
+                if (historyPeriodLen && betPeriod.length > historyPeriodLen) {
+                    betPeriod = betPeriod.slice(0, historyPeriodLen);
+                }
 
                 // 在 history 中找下注錨點位置；history 是 desc 排序（index 0 最新）
                 const betIdx = latestHistory.findIndex(h => h.period === betPeriod);

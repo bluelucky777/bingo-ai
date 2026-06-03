@@ -199,7 +199,12 @@ def _now_taipei_str():
 
 
 def _scrape_records():
-    """從來源網站靜態 HTML 抓最近期數；回傳 list of {period, numbers}"""
+    """從來源網站靜態 HTML 抓最近期數；回傳 list of {period, numbers}
+
+    來源 HTML 結構：<td><b>115031155</b><br/>15:00</td>
+    必須從 <b> 標籤內取期數，否則 get_text() 會把後面時間 "15:00" 黏進來，
+    被 regex \\d{9,10} 誤抓成 10 位數（含時間 HH 的第一位）。
+    """
     resp = requests.get(_SCRAPE_SOURCE, headers={"User-Agent": _SCRAPE_UA}, timeout=15)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -210,10 +215,14 @@ def _scrape_records():
         cols = row.find_all("td")
         if len(cols) < 2:
             continue
-        m = re.search(r'(\d{9,10})', cols[0].get_text())
-        if not m:
+        # 從 <b> 標籤拿期數（避免黏到時間欄）
+        b_tag = cols[0].find("b")
+        if not b_tag:
             continue
-        period = m.group(1)
+        period = b_tag.get_text(strip=True)
+        if not re.fullmatch(r'\d{8,10}', period):
+            continue
+
         ball_td = row.find("td", class_="BBALL")
         if not ball_td:
             continue
@@ -255,6 +264,11 @@ def scrape():
         new_records = _scrape_records()
         if not new_records:
             return jsonify({"status": "error", "message": "來源網站抓不到任何紀錄"}), 502
+
+        # 一次性遷移：舊資料的 period 是 10 位（regex bug 把時間第一位黏進來），
+        # 新爬下來的是正確 9 位 — 過濾掉舊的不一致格式避免污染排序
+        new_period_len = len(new_records[0]['period'])
+        existing_records = [r for r in existing_records if len(r.get('period', '')) == new_period_len]
 
         # 合併去重，排序，取前 100
         seen = set()
