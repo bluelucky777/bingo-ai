@@ -2,13 +2,18 @@
 369 BINGO Flask API
 - /api/predict: 號碼分析 + 預測 + 星級 + 攻略 + 脆友推薦 + 回測（一次回完整 payload）
 - /api/backtest: 單純回測指定策略
+- /api/scrape: 立即觸發爬蟲，更新 Firebase（給 UptimeRobot + 前端「立即同步」鈕用）
 - 資料來源：Firebase RTDB（不再讀本地 history.json）
 """
+import datetime as _dt
 import json
 import os
+import re
 import traceback
 
 import firebase_admin
+import requests
+from bs4 import BeautifulSoup
 from firebase_admin import credentials, db
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -176,6 +181,104 @@ def backtest_endpoint():
 def health():
     """Render 保活用 — 不碰 Firebase，純回 200"""
     return jsonify({"status": "ok"})
+
+
+# ---------- 即時爬蟲端點 ----------
+
+_SCRAPE_SOURCE = "https://lotto.auzonet.com/bingobingoV1.php"
+_SCRAPE_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+_SCRAPE_THROTTLE_SEC = 30   # 30 秒節流，防止狂按 / UptimeRobot 重複觸發
+_SCRAPE_MAX_HISTORY = 100
+
+
+def _scrape_records():
+    """從來源網站靜態 HTML 抓最近期數；回傳 list of {period, numbers}"""
+    resp = requests.get(_SCRAPE_SOURCE, headers={"User-Agent": _SCRAPE_UA}, timeout=15)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
+    rows = soup.find_all("tr", class_="bingo_text_row")
+
+    records = []
+    for row in rows[:_SCRAPE_MAX_HISTORY]:
+        cols = row.find_all("td")
+        if len(cols) < 2:
+            continue
+        m = re.search(r'(\d{9,10})', cols[0].get_text())
+        if not m:
+            continue
+        period = m.group(1)
+        ball_td = row.find("td", class_="BBALL")
+        if not ball_td:
+            continue
+        text = ball_td.get_text(separator=' ')
+        raw_nums = re.findall(r'\b(\d{1,2})\b', text)
+        found = sorted(set(n.zfill(2) for n in raw_nums if 1 <= int(n) <= 80))
+        if len(found) >= 20:
+            records.append({"period": period, "numbers": found[:20]})
+    return records
+
+
+@app.route('/api/scrape', methods=['GET', 'POST'])
+def scrape():
+    """立即抓最新一期，30 秒節流避免被狂打。給 UptimeRobot + 前端立即同步鈕用。"""
+    try:
+        _init_firebase()
+        ref = db.reference('bingo_data')
+        existing = ref.get() or {}
+        existing_records = existing.get('records', [])
+        existing_last = existing.get('last_update')
+
+        # 30 秒節流
+        if existing_last:
+            try:
+                last_dt = _dt.datetime.strptime(existing_last, '%Y-%m-%d %H:%M:%S')
+                age_sec = (_dt.datetime.now() - last_dt).total_seconds()
+                if 0 <= age_sec < _SCRAPE_THROTTLE_SEC:
+                    return jsonify({
+                        "status": "throttled",
+                        "message": f"上次同步 {int(age_sec)} 秒前，{_SCRAPE_THROTTLE_SEC} 秒內請勿重複觸發",
+                        "last_update": existing_last,
+                        "last_period": existing_records[0]['period'] if existing_records else None,
+                    }), 200
+            except (ValueError, TypeError):
+                pass  # 解析失敗就 fallthrough 去爬
+
+        # 開爬
+        new_records = _scrape_records()
+        if not new_records:
+            return jsonify({"status": "error", "message": "來源網站抓不到任何紀錄"}), 502
+
+        # 合併去重，排序，取前 100
+        seen = set()
+        merged = []
+        for r in new_records + existing_records:
+            if r['period'] not in seen:
+                seen.add(r['period'])
+                merged.append(r)
+        merged = sorted(merged, key=lambda x: x['period'], reverse=True)[:_SCRAPE_MAX_HISTORY]
+
+        now_str = _dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        ref.set({"last_update": now_str, "records": merged})
+
+        # 判斷是否真的有更新（最新期數有沒有變）
+        prev_top = existing_records[0]['period'] if existing_records else None
+        new_top = merged[0]['period']
+        return jsonify({
+            "status": "ok",
+            "updated": prev_top != new_top,
+            "scraped_count": len(new_records),
+            "total_count": len(merged),
+            "last_update": now_str,
+            "last_period": new_top,
+            "previous_period": prev_top,
+        }), 200
+
+    except requests.exceptions.RequestException as e:
+        return jsonify({"status": "error", "message": f"來源網站連線失敗：{type(e).__name__}: {e}"}), 502
+    except Exception as e:
+        print(f"❌ /api/scrape 錯誤：{type(e).__name__}: {e}")
+        traceback.print_exc()
+        return jsonify({"status": "error", "message": f"{type(e).__name__}: {e}"}), 500
 
 
 if __name__ == '__main__':

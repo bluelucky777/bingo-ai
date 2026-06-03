@@ -36,6 +36,9 @@
                 <h3 class="text-sm font-bold text-red-400 mt-2">以上信息僅供參考，使用前請自行確認其準確性。使用者需自行承擔風險。</h3>
                 <p id="cur-period" class="text-indigo-400 font-mono text-lg mt-4 tracking-tight">連線中...</p>
                 <p id="update-time" class="text-emerald-400 font-bold text-base mt-1 italic">等待數據同步...</p>
+                <button onclick="manualSync()" id="sync-btn" class="mt-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 rounded text-xs font-bold text-white">
+                    🔄 立即同步最新期數
+                </button>
             </div>
             <div class="bg-indigo-900/30 text-indigo-300 px-3 py-1 rounded-full border border-indigo-500/30 flex items-center gap-2 text-xs">
                 <span class="relative flex h-2 w-2">
@@ -733,6 +736,38 @@
                     </div>
                 `;
             }).join('');
+        }
+
+        // 立即同步：呼叫後端 /api/scrape 觸發爬蟲拉最新一期，完成後重新分析
+        async function manualSync() {
+            const btn = document.getElementById('sync-btn');
+            const origText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = '⏳ 同步中…';
+            try {
+                const resp = await fetch(`${API_BASE}/api/scrape`);
+                const data = await resp.json();
+                if (data.status === 'throttled') {
+                    alert(`太頻繁了\n${data.message}`);
+                } else if (data.status === 'ok') {
+                    if (data.updated) {
+                        btn.innerText = `✅ 已更新到 ${data.last_period}`;
+                    } else {
+                        btn.innerText = '✓ 已是最新';
+                    }
+                    // 拉新資料重新渲染
+                    await fetchAnalysis();
+                } else {
+                    alert(`同步失敗：${data.message || '未知錯誤'}`);
+                }
+            } catch (e) {
+                alert(`同步失敗：${e.message}`);
+            } finally {
+                setTimeout(() => {
+                    btn.innerText = origText;
+                    btn.disabled = false;
+                }, 2000);
+            }
         }
 
         window.onload = () => {
