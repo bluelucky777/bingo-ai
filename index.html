@@ -115,6 +115,11 @@
                 </script>
             </div>
 
+            <!-- 🎯 產生預測號碼（手動觸發，避免點選項就跳號）-->
+            <button onclick="fetchAnalysis()" id="run-analysis-btn" class="w-full bg-yellow-500 hover:bg-yellow-400 text-slate-900 py-3 rounded-lg font-bold text-base mb-4 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                🎯 產生預測號碼
+            </button>
+
             <!-- 預測結果 -->
             <div id="pred-box" class="flex flex-wrap justify-center gap-3 mb-4 min-h-[60px]"></div>
 
@@ -270,6 +275,11 @@
                 b.style.cursor = loading ? 'wait' : 'pointer';
                 b.style.pointerEvents = loading ? 'none' : '';
             });
+            const runBtn = document.getElementById('run-analysis-btn');
+            if (runBtn) {
+                runBtn.disabled = loading;
+                if (loading) runBtn.innerText = '⏳ 計算中…';
+            }
             if (loading) {
                 document.getElementById('cur-period').innerText = '⏳ 載入中…（雲端冷啟動最長約 30 秒，請稍候）';
             }
@@ -289,6 +299,7 @@
                 const data = await resp.json();
                 if (data.error) throw new Error(data.error);
                 renderAll(data);
+                clearDirty();  // 成功更新後清除 dirty 視覺
             } catch (e) {
                 if (e.name === 'AbortError') return;
                 console.error('❌ 取得分析失敗：', e);
@@ -486,32 +497,49 @@
             `).join('');
         }
 
-        // === 按鈕事件 ===
+        // === Dirty 狀態：使用者改設定但還沒按「產生預測號碼」 ===
+        function markDirty() {
+            const btn = document.getElementById('run-analysis-btn');
+            if (!btn) return;
+            btn.classList.add('animate-pulse', 'bg-rose-500');
+            btn.classList.remove('bg-yellow-500', 'hover:bg-yellow-400', 'hover:bg-rose-400');
+            btn.classList.add('hover:bg-rose-400');
+            btn.innerText = '⚡ 設定已變更，點此套用';
+        }
+        function clearDirty() {
+            const btn = document.getElementById('run-analysis-btn');
+            if (!btn) return;
+            btn.classList.remove('animate-pulse', 'bg-rose-500', 'hover:bg-rose-400');
+            btn.classList.add('bg-yellow-500', 'hover:bg-yellow-400');
+            btn.innerText = '🎯 重新產生預測';
+        }
+
+        // === 按鈕事件：只改狀態 + 視覺，不打 API ===
         function changeLimit(l) {
             currentLimit = l;
             document.querySelectorAll('.limit-btn').forEach(b => b.classList.remove('limit-active'));
             document.getElementById(`btn-limit-${l}`).classList.add('limit-active');
             document.getElementById('top-title').innerText = `📈 近${l}期-出現機率排行榜 (Top 10)`;
             document.getElementById('low-title').innerText = `📉 近${l}期-冷門號碼排行榜 (Low 10)`;
-            fetchAnalysis();
+            markDirty();
         }
         function changeBallCount(c) {
             currentBallCount = c;
             document.querySelectorAll('.count-btn').forEach(b => b.classList.remove('count-active'));
             document.getElementById('btn-count-' + c).classList.add('count-active');
-            fetchAnalysis();
+            markDirty();
         }
         function changeExpertBallCount(n) {
             expertBallCount = n;
             document.querySelectorAll('.eb-btn').forEach(b => b.classList.remove('expert-count-active'));
             document.getElementById('eb-' + n).classList.add('expert-count-active');
-            fetchAnalysis();
+            markDirty();
         }
         function setStrat(s) {
             strat = s;
             document.querySelectorAll('.strat-btn').forEach(b => b.classList.remove('ring-4', 'ring-white/50'));
             document.getElementById('btn-' + s).classList.add('ring-4', 'ring-white/50');
-            fetchAnalysis();
+            markDirty();
         }
 
         function setAnalysisTab(tab) {
