@@ -148,15 +148,21 @@
             <div id="strat-logic" class="space-y-4 text-lg">載入中...</div>
         </div>
 
-        <!-- 進階分析（三合一切換 tab） -->
+        <!-- 進階分析（四合一切換 tab） -->
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
                 <h3 class="text-xl font-bold text-emerald-400">🔬 進階分析</h3>
                 <div class="flex gap-1 bg-slate-900/50 p-1 rounded-lg flex-wrap">
+                    <button onclick="setAnalysisTab('history')" id="tab-history" class="analysis-tab px-3 py-1.5 rounded text-sm font-bold border border-transparent">📅 近期歷史數據</button>
                     <button onclick="setAnalysisTab('n-groups')" id="tab-n-groups" class="analysis-tab px-3 py-1.5 rounded text-sm font-bold border border-transparent analysis-tab-active">🔍 號碼屬性</button>
                     <button onclick="setAnalysisTab('g-strats')" id="tab-g-strats" class="analysis-tab px-3 py-1.5 rounded text-sm font-bold border border-transparent">🧠 攻略邏輯</button>
                     <button onclick="setAnalysisTab('star-levels')" id="tab-star-levels" class="analysis-tab px-3 py-1.5 rounded text-sm font-bold border border-transparent">⭐ 星級配號</button>
                 </div>
+            </div>
+
+            <!-- 近期歷史數據（最新 10 期） -->
+            <div id="pane-history" class="analysis-pane hidden">
+                <div id="history-container" class="space-y-3">載入中...</div>
             </div>
 
             <!-- 號碼屬性 -->
@@ -173,12 +179,6 @@
             <div id="pane-star-levels" class="analysis-pane hidden">
                 <div id="star-levels" class="space-y-3 text-base">載入中...</div>
             </div>
-        </div>
-
-        <!-- 歷史 -->
-        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
-            <h3 class="text-xl font-bold text-slate-400 mb-4">📅 近期歷史數據（最新 10 期）</h3>
-            <div id="history-container" class="space-y-3">載入中...</div>
         </div>
 
         </main>
