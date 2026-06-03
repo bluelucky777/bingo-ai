@@ -153,20 +153,20 @@
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
                 <h3 class="text-xl font-bold text-emerald-400">🔬 進階分析</h3>
                 <div class="flex gap-1 bg-slate-900/50 p-1 rounded-lg flex-wrap">
-                    <button onclick="setAnalysisTab('history')" id="tab-history" class="analysis-tab px-3 py-1.5 rounded text-sm font-bold border border-transparent">📅 近期歷史數據</button>
-                    <button onclick="setAnalysisTab('n-groups')" id="tab-n-groups" class="analysis-tab px-3 py-1.5 rounded text-sm font-bold border border-transparent analysis-tab-active">🔍 號碼屬性</button>
+                    <button onclick="setAnalysisTab('history')" id="tab-history" class="analysis-tab px-3 py-1.5 rounded text-sm font-bold border border-transparent analysis-tab-active">📅 近期歷史數據</button>
+                    <button onclick="setAnalysisTab('n-groups')" id="tab-n-groups" class="analysis-tab px-3 py-1.5 rounded text-sm font-bold border border-transparent">🔍 號碼屬性</button>
                     <button onclick="setAnalysisTab('g-strats')" id="tab-g-strats" class="analysis-tab px-3 py-1.5 rounded text-sm font-bold border border-transparent">🧠 攻略邏輯</button>
                     <button onclick="setAnalysisTab('star-levels')" id="tab-star-levels" class="analysis-tab px-3 py-1.5 rounded text-sm font-bold border border-transparent">⭐ 星級配號</button>
                 </div>
             </div>
 
             <!-- 近期歷史數據（最新 10 期） -->
-            <div id="pane-history" class="analysis-pane hidden">
+            <div id="pane-history" class="analysis-pane">
                 <div id="history-container" class="space-y-3">載入中...</div>
             </div>
 
             <!-- 號碼屬性 -->
-            <div id="pane-n-groups" class="analysis-pane">
+            <div id="pane-n-groups" class="analysis-pane hidden">
                 <div id="n-groups" class="space-y-6 text-lg">載入中...</div>
             </div>
 
@@ -268,7 +268,7 @@
         let betPeriods = 1;
         let latestHistory = [];   // 最新一次 fetchAnalysis 拿到的 history（給結算用）
         let lastPeriodFromApi = null;
-        let analysisTab = 'n-groups';  // n-groups | g-strats | star-levels
+        let analysisTab = 'history';  // history | n-groups | g-strats | star-levels
         let currentExperts = [];  // 最新一次 fetchAnalysis 拿到的脆友策略（給「一鍵帶入」用）
         let betSource = null;  // 當前下注區的來源策略名稱（被一鍵帶入時設定，手動編號清除）
 
