@@ -78,6 +78,27 @@ def _next_period(period_str):
         return None
 
 
+# 全模組級快取：backtest 4 個策略總共 6000 次運算，Render 免費版要 ~3 秒
+# 但 backtest 結果只跟 history 內容相關，與 limit/strategy/ball_count 無關
+# → 用 last_update 當 key 快取，5 分鐘內所有切換都命中
+_BACKTEST_CACHE = {}
+
+
+def _get_or_compute_backtest(full_nums, last_update):
+    """快取 backtest 結果。Key 用 last_update（每次 /api/scrape 都會變）"""
+    key = (last_update, len(full_nums))
+    if key in _BACKTEST_CACHE:
+        return _BACKTEST_CACHE[key]
+    result = {}
+    for s in ['hot', 'balanced', 'luck', 'pure_hot']:
+        result[s] = backtest_strategy(full_nums, s, test_periods=30, lookback=50, ball_count=6)
+    _BACKTEST_CACHE[key] = result
+    # 簡易 LRU：只留最近 3 個 key 防止記憶體膨脹
+    if len(_BACKTEST_CACHE) > 3:
+        del _BACKTEST_CACHE[next(iter(_BACKTEST_CACHE))]
+    return result
+
+
 # ---------- 端點 ----------
 
 @app.route('/api/predict', methods=['GET'])
@@ -92,6 +113,8 @@ def predict():
         full_history, last_update = _load_history()
         if not full_history:
             return jsonify({"error": "資料庫為空，請等候爬蟲首次同步"}), 200
+
+        cache_signature = last_update or (full_history[0].get('period') if full_history else None)
 
         # 分析範圍受 limit 控制（給機率排行 / n_groups / 策略預測用）
         history_data = full_history[:limit]
@@ -118,12 +141,11 @@ def predict():
         strategies = get_strategy_analysis(nums_only, n_groups, counts)
         expert = get_expert_strategies(nums_only, n_groups, expert_count)
 
-        # 回測（用全歷史，可省以加速）
+        # 回測：最貴的部分，用 last_update 當 key 快取；切換 limit/strategy/ball 都命中
         backtest = {}
         best_strategy_prediction = None
         if run_backtest and len(full_nums) >= 10:
-            for s in ['hot', 'balanced', 'luck', 'pure_hot']:
-                backtest[s] = backtest_strategy(full_nums, s, test_periods=30, lookback=50, ball_count=6)
+            backtest = _get_or_compute_backtest(full_nums, cache_signature)
             # 找回測 avg_hit 最高的策略 → 用同樣固定 seed 預測下一期 6 顆作為「推薦下注」
             best_key = max(backtest, key=lambda k: backtest[k]['avg_hit'])
             import random as _r
