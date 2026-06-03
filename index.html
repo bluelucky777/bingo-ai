@@ -177,14 +177,7 @@
 
         <!-- 歷史 -->
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
-                <h3 class="text-xl font-bold text-slate-400">📅 近期歷史數據</h3>
-                <div class="flex gap-2">
-                    <button onclick="setHistoryTab(10)" id="hist-tab-10" class="hist-tab analysis-tab analysis-tab-active px-3 py-1.5 rounded text-sm font-bold border border-transparent">10期</button>
-                    <button onclick="setHistoryTab(20)" id="hist-tab-20" class="hist-tab analysis-tab px-3 py-1.5 rounded text-sm font-bold border border-transparent">20期</button>
-                    <button onclick="setHistoryTab(30)" id="hist-tab-30" class="hist-tab analysis-tab px-3 py-1.5 rounded text-sm font-bold border border-transparent">30期</button>
-                </div>
-            </div>
+            <h3 class="text-xl font-bold text-slate-400 mb-4">📅 近期歷史數據（最新 10 期）</h3>
             <div id="history-container" class="space-y-3">載入中...</div>
         </div>
 
@@ -276,7 +269,6 @@
         let latestHistory = [];   // 最新一次 fetchAnalysis 拿到的 history（給結算用）
         let lastPeriodFromApi = null;
         let analysisTab = 'n-groups';  // n-groups | g-strats | star-levels
-        let historyTab = 10;  // 10 / 20 / 30 — 對應 1-10 / 11-20 / 21-30 期
         let currentExperts = [];  // 最新一次 fetchAnalysis 拿到的脆友策略（給「一鍵帶入」用）
         let betSource = null;  // 當前下注區的來源策略名稱（被一鍵帶入時設定，手動編號清除）
 
@@ -532,13 +524,10 @@
 
         function renderHistoryList(history) {
             if (!history) return;
-            // 依分頁切段：10 → 0..9（1-10 期）/ 20 → 10..19（11-20）/ 30 → 20..29（21-30）
-            const start = historyTab - 10;
-            const end = historyTab;
-            const sliced = history.slice(start, end);
             const box = document.getElementById('history-container');
+            const sliced = history.slice(0, 10);
             if (!sliced.length) {
-                box.innerHTML = '<p class="text-slate-500 text-sm">此區段尚無資料（歷史筆數不足）</p>';
+                box.innerHTML = '<p class="text-slate-500 text-sm">尚無歷史資料</p>';
                 return;
             }
             box.innerHTML = sliced.map(h => `
@@ -547,14 +536,6 @@
                     <span class="text-slate-300 flex-1 tracking-widest text-lg">${h.numbers.join(' ')}</span>
                 </div>
             `).join('');
-        }
-
-        function setHistoryTab(n) {
-            historyTab = n;
-            document.querySelectorAll('.hist-tab').forEach(b => b.classList.remove('analysis-tab-active'));
-            document.getElementById('hist-tab-' + n).classList.add('analysis-tab-active');
-            // 用快取的 latestHistory 重渲染，不打 API
-            renderHistoryList(latestHistory);
         }
 
         // === Dirty 狀態：使用者改設定但還沒按「產生預測號碼」 ===
