@@ -83,7 +83,7 @@
             </div>
 
             <!-- 策略按鈕（含回測徽章） -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
                 <button onclick="setStrat('pure_hot')" id="btn-pure_hot" class="strat-btn relative bg-rose-600 p-3 rounded-xl font-bold text-left">
                     <div class="text-base">🌶️ 純熱門</div>
                     <div id="bt-badge-pure_hot" class="text-xs opacity-90 mt-1">回測 --</div>
@@ -92,21 +92,9 @@
                     <div class="text-base">🔥 追熱門</div>
                     <div id="bt-badge-hot" class="text-xs opacity-90 mt-1">回測 --</div>
                 </button>
-                <button onclick="setStrat('balanced')" id="btn-balanced" class="strat-btn relative bg-emerald-600 p-3 rounded-xl font-bold text-left">
-                    <div class="text-base">⚖️ 均衡</div>
-                    <div id="bt-badge-balanced" class="text-xs opacity-90 mt-1">回測 --</div>
-                </button>
-                <button onclick="setStrat('luck')" id="btn-luck" class="strat-btn relative bg-purple-600 p-3 rounded-xl font-bold text-left">
-                    <div class="text-base">🎲 拼運氣</div>
-                    <div id="bt-badge-luck" class="text-xs opacity-90 mt-1">回測 --</div>
-                </button>
                 <button onclick="setStrat('consensus')" id="btn-consensus" class="strat-btn relative bg-yellow-600 p-3 rounded-xl font-bold text-left">
                     <div class="text-base">🎯 共識挑</div>
                     <div id="bt-badge-consensus" class="text-xs opacity-90 mt-1">回測 --</div>
-                </button>
-                <button onclick="setStrat('parity_zone')" id="btn-parity_zone" class="strat-btn relative bg-teal-600 p-3 rounded-xl font-bold text-left">
-                    <div class="text-base">🌐 區間平衡</div>
-                    <div id="bt-badge-parity_zone" class="text-xs opacity-90 mt-1">回測 --</div>
                 </button>
                 <button onclick="setStrat('markov')" id="btn-markov" class="strat-btn relative bg-pink-600 p-3 rounded-xl font-bold text-left">
                     <div class="text-base">🔗 馬可夫</div>
@@ -389,7 +377,7 @@
 
         // 把回測結果寫成策略按鈕上的徽章；找出最佳策略
         function renderStrategyBacktest(bt, recommended) {
-            const strategies = ['pure_hot', 'hot', 'balanced', 'luck', 'consensus', 'parity_zone', 'markov'];
+            const strategies = ['pure_hot', 'hot', 'consensus', 'markov'];
             // 重置：所有按鈕去除最佳光暈
             strategies.forEach(k => {
                 const el = document.getElementById('btn-' + k);
@@ -637,10 +625,7 @@
         const STRAT_LABEL = {
             pure_hot: '🌶️ 純熱門',
             hot: '🔥 追熱門',
-            balanced: '⚖️ 均衡',
-            luck: '🎲 拼運氣',
             consensus: '🎯 共識挑',
-            parity_zone: '🌐 區間平衡',
             markov: '🔗 馬可夫',
             random: '🌀 AI隨便挑',
         };
