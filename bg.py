@@ -21,6 +21,8 @@ MAX_HISTORY = 100  # 加大窗口，回測需要至少 80+ 期
 URL = "https://lotto.auzonet.com/bingobingoV1.php"
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
 REQUEST_TIMEOUT = 15
+# GH Actions runner 預設 UTC，但顯示給台灣使用者 → 寫入用 UTC+8
+TPE_TZ = datetime.timezone(datetime.timedelta(hours=8))
 
 
 def _init_firebase():
@@ -94,7 +96,7 @@ def fetch_bingo_now():
         merged = sorted(merged, key=lambda x: x['period'], reverse=True)[:MAX_HISTORY]
 
         data_to_save = {
-            "last_update": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "last_update": datetime.datetime.now(TPE_TZ).strftime("%Y-%m-%d %H:%M:%S"),
             "records": merged,
         }
         ref.set(data_to_save)

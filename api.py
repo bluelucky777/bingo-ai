@@ -189,6 +189,13 @@ _SCRAPE_SOURCE = "https://lotto.auzonet.com/bingobingoV1.php"
 _SCRAPE_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
 _SCRAPE_THROTTLE_SEC = 30   # 30 秒節流，防止狂按 / UptimeRobot 重複觸發
 _SCRAPE_MAX_HISTORY = 100
+# Render 預設 UTC，但顯示要給台灣使用者看 → 寫入用 UTC+8
+_TPE_TZ = _dt.timezone(_dt.timedelta(hours=8))
+
+
+def _now_taipei_str():
+    """回傳台灣時間字串，給 last_update 用"""
+    return _dt.datetime.now(_TPE_TZ).strftime('%Y-%m-%d %H:%M:%S')
 
 
 def _scrape_records():
@@ -228,11 +235,12 @@ def scrape():
         existing_records = existing.get('records', [])
         existing_last = existing.get('last_update')
 
-        # 30 秒節流
+        # 30 秒節流（比對台灣時間；舊資料是 UTC 字串會算出負值 age → fallthrough 去刷新）
         if existing_last:
             try:
                 last_dt = _dt.datetime.strptime(existing_last, '%Y-%m-%d %H:%M:%S')
-                age_sec = (_dt.datetime.now() - last_dt).total_seconds()
+                now_naive_tpe = _dt.datetime.now(_TPE_TZ).replace(tzinfo=None)
+                age_sec = (now_naive_tpe - last_dt).total_seconds()
                 if 0 <= age_sec < _SCRAPE_THROTTLE_SEC:
                     return jsonify({
                         "status": "throttled",
@@ -257,7 +265,7 @@ def scrape():
                 merged.append(r)
         merged = sorted(merged, key=lambda x: x['period'], reverse=True)[:_SCRAPE_MAX_HISTORY]
 
-        now_str = _dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        now_str = _now_taipei_str()
         ref.set({"last_update": now_str, "records": merged})
 
         # 判斷是否真的有更新（最新期數有沒有變）
