@@ -13,7 +13,9 @@ import random
 
 ALL_NUMS = [str(i).zfill(2) for i in range(1, 81)]
 DECAY_TAU = 10.0   # 期距遞減 e^(-i/tau)，10 表示第 10 期權重約 0.37
-HIGH_HIT_THRESHOLD = 5  # 6 顆中 5+ 算「高命中」
+HIGH_HIT_THRESHOLD = 3  # 6 顆中 3+ 算「高命中」
+# 為什麼 3：25% 機率 × 6 顆 = 期望 1.5 命中，3+ 約 17%/期；
+# 10 期回測下 5+ 命中率僅 4%（≈0.4/10），訊號太微弱無法分辨策略差異
 
 
 # ---------- 基礎工具 ----------
@@ -242,10 +244,100 @@ STRATEGY_COMPOSITION = {
 }
 
 
+def _consensus_pick(history_nums, n_groups, ball_count, rng):
+    """🎯 共識挑：跑 4 個基礎策略各抽 10 顆，依投票數 + 加權頻率排序取 ball_count
+
+    理論：多策略都看好的號碼有更強的「綜合訊號」（雖然數學期望仍 25%）
+    """
+    base_strategies = ['hot', 'balanced', 'luck', 'pure_hot']
+    votes = collections.Counter()
+    for s in base_strategies:
+        # 用大球數抽提高交集機會
+        picks = analyze_strategy(history_nums, s, n_groups, ball_count=10, rng=rng)
+        for p in picks:
+            votes[p['num']] += 1
+    weighted = compute_weighted_counts(history_nums)
+    # tie-break：投票相同時看加權出現次數
+    ranked = sorted(votes.items(), key=lambda x: (-x[1], -weighted.get(x[0], 0)))
+    return [n for n, _ in ranked[:ball_count]]
+
+
+def _parity_zone_pick(weighted, ball_count, rng):
+    """🌐 區間平衡：4 區（1-20/21-40/41-60/61-80）分配球數，區內按加權頻率抽
+
+    分配規則：ball_count // 4 為底，餘數按順序灑前幾區（6 → 2+1+1+2 不對，是 2+2+1+1）
+    """
+    zones = [
+        [n for n in ALL_NUMS if 1 <= int(n) <= 20],
+        [n for n in ALL_NUMS if 21 <= int(n) <= 40],
+        [n for n in ALL_NUMS if 41 <= int(n) <= 60],
+        [n for n in ALL_NUMS if 61 <= int(n) <= 80],
+    ]
+    base = ball_count // 4
+    extra = ball_count - base * 4
+    counts_per_zone = [base + (1 if i < extra else 0) for i in range(4)]
+
+    # weighted_pick 會把 picks 寫進 exclude 參數的 list，所以 selected 同時當 exclude 和 result
+    # 不能再 extend(picks) 否則會 double-append（exclude 已被 mutated 過）
+    selected = []
+    for zone, k in zip(zones, counts_per_zone):
+        if k <= 0:
+            continue
+        zone_pool = [(n, weighted.get(n, 0.1)) for n in zone]
+        weighted_pick(zone_pool, k, selected, rng=rng)
+    # 補不足（理論上不會發生，保險）
+    if len(selected) < ball_count:
+        all_pool = [(n, weighted.get(n, 0.1)) for n in ALL_NUMS]
+        weighted_pick(all_pool, ball_count - len(selected), selected, rng=rng)
+    return selected[:ball_count]
+
+
+def _markov_pick(history_nums, ball_count, rng):
+    """🔗 馬可夫鏈：對「上一期某球出 → 下一期某球出」做條件機率累計，挑高轉移分
+
+    history_nums desc 排序：index 0 最新。第 i 期之後（更新）= i-1。
+    """
+    if len(history_nums) < 2:
+        return []
+    # trans[a][b]: 較舊期 a 出 → 較新期 b 出 的次數
+    trans = collections.defaultdict(lambda: collections.Counter())
+    for i in range(len(history_nums) - 1):
+        newer_draw = history_nums[i]
+        older_draw = history_nums[i + 1]
+        for a in older_draw:
+            for b in newer_draw:
+                trans[a][b] += 1
+
+    # 從「最新期出現的號碼」出發，累計轉移分數
+    last_drawn = history_nums[0]
+    scores = collections.Counter()
+    for a in last_drawn:
+        for b, cnt in trans.get(a, {}).items():
+            scores[b] += cnt
+
+    seen = set()
+    picks = []
+    for n, _ in scores.most_common():
+        if n not in seen:
+            seen.add(n)
+            picks.append(n)
+        if len(picks) >= ball_count:
+            break
+    # 補不足
+    if len(picks) < ball_count:
+        weighted = compute_weighted_counts(history_nums)
+        remain = sorted(
+            (n for n in ALL_NUMS if n not in seen),
+            key=lambda n: -weighted.get(n, 0)
+        )
+        picks.extend(remain[:ball_count - len(picks)])
+    return picks[:ball_count]
+
+
 def analyze_strategy(history_nums, strategy, n_groups, ball_count=6, rng=None):
     """
-    三策略預測 — 用加權抽樣 + 球數縮減優先級。
-    strategy: hot / balanced / luck / random
+    多策略預測 — 用加權抽樣 + 球數縮減優先級。
+    strategy: hot / balanced / luck / random / pure_hot / consensus / parity_zone / markov
     球數減少時依優先權保留：高機率 > 拖號 > 共伴 > 熱門
     """
     r = rng or random
@@ -255,6 +347,18 @@ def analyze_strategy(history_nums, strategy, n_groups, ball_count=6, rng=None):
     if strategy == "random":
         # 完全隨機（不參考任何頻率）
         picks = r.sample(ALL_NUMS, ball_count)
+        return [{"num": n, "count": counts.get(n, 0)} for n in picks]
+
+    if strategy == "consensus":
+        picks = _consensus_pick(history_nums, n_groups, ball_count, r)
+        return [{"num": n, "count": counts.get(n, 0)} for n in picks]
+
+    if strategy == "parity_zone":
+        picks = _parity_zone_pick(weighted, ball_count, r)
+        return [{"num": n, "count": counts.get(n, 0)} for n in picks]
+
+    if strategy == "markov":
+        picks = _markov_pick(history_nums, ball_count, r)
         return [{"num": n, "count": counts.get(n, 0)} for n in picks]
 
     composition = STRATEGY_COMPOSITION.get(strategy)

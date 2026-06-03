@@ -90,8 +90,9 @@ def _get_or_compute_backtest(full_nums, last_update):
     if key in _BACKTEST_CACHE:
         return _BACKTEST_CACHE[key]
     result = {}
-    for s in ['hot', 'balanced', 'luck', 'pure_hot']:
-        result[s] = backtest_strategy(full_nums, s, test_periods=30, lookback=50, ball_count=6)
+    # 7 個策略 × 10 期 = 70 次回測（原 4×30=120 次）— 更快且能對比新策略
+    for s in ['hot', 'balanced', 'luck', 'pure_hot', 'consensus', 'parity_zone', 'markov']:
+        result[s] = backtest_strategy(full_nums, s, test_periods=10, lookback=50, ball_count=6)
     _BACKTEST_CACHE[key] = result
     # 簡易 LRU：只留最近 3 個 key 防止記憶體膨脹
     if len(_BACKTEST_CACHE) > 3:

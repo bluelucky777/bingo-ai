@@ -79,11 +79,11 @@
         <div class="bg-slate-800 p-6 md:p-8 rounded-2xl border-t-8 border-yellow-500 shadow-2xl">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
                 <h2 class="text-xl font-bold text-yellow-500 tracking-widest">🔮 AI 核心預測</h2>
-                <span class="text-xs text-slate-500">命中率徽章 = 該策略過去 30 期回測平均命中數</span>
+                <span class="text-xs text-slate-500">徽章 = 近 10 期回測，高命中 = 6 顆中 ≥3 顆</span>
             </div>
 
             <!-- 策略按鈕（含回測徽章） -->
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                 <button onclick="setStrat('pure_hot')" id="btn-pure_hot" class="strat-btn relative bg-rose-600 p-3 rounded-xl font-bold text-left">
                     <div class="text-base">🌶️ 純熱門</div>
                     <div id="bt-badge-pure_hot" class="text-xs opacity-90 mt-1">回測 --</div>
@@ -99,6 +99,18 @@
                 <button onclick="setStrat('luck')" id="btn-luck" class="strat-btn relative bg-purple-600 p-3 rounded-xl font-bold text-left">
                     <div class="text-base">🎲 拼運氣</div>
                     <div id="bt-badge-luck" class="text-xs opacity-90 mt-1">回測 --</div>
+                </button>
+                <button onclick="setStrat('consensus')" id="btn-consensus" class="strat-btn relative bg-yellow-600 p-3 rounded-xl font-bold text-left">
+                    <div class="text-base">🎯 共識挑</div>
+                    <div id="bt-badge-consensus" class="text-xs opacity-90 mt-1">回測 --</div>
+                </button>
+                <button onclick="setStrat('parity_zone')" id="btn-parity_zone" class="strat-btn relative bg-teal-600 p-3 rounded-xl font-bold text-left">
+                    <div class="text-base">🌐 區間平衡</div>
+                    <div id="bt-badge-parity_zone" class="text-xs opacity-90 mt-1">回測 --</div>
+                </button>
+                <button onclick="setStrat('markov')" id="btn-markov" class="strat-btn relative bg-pink-600 p-3 rounded-xl font-bold text-left">
+                    <div class="text-base">🔗 馬可夫</div>
+                    <div id="bt-badge-markov" class="text-xs opacity-90 mt-1">回測 --</div>
                 </button>
                 <button onclick="setStrat('random')" id="btn-random" class="strat-btn relative bg-blue-600 p-3 rounded-xl font-bold text-left">
                     <div class="text-base">🌀 AI隨便挑</div>
@@ -377,15 +389,17 @@
 
         // 把回測結果寫成策略按鈕上的徽章；找出最佳策略
         function renderStrategyBacktest(bt, recommended) {
-            const strategies = ['pure_hot', 'hot', 'balanced', 'luck'];
+            const strategies = ['pure_hot', 'hot', 'balanced', 'luck', 'consensus', 'parity_zone', 'markov'];
             // 重置：所有按鈕去除最佳光暈
             strategies.forEach(k => {
-                document.getElementById('btn-' + k).classList.remove('best-strategy');
+                const el = document.getElementById('btn-' + k);
+                if (el) el.classList.remove('best-strategy');
             });
 
             if (!bt || Object.keys(bt).length === 0) {
                 strategies.forEach(k => {
-                    document.getElementById('bt-badge-' + k).innerText = '回測資料不足';
+                    const b = document.getElementById('bt-badge-' + k);
+                    if (b) b.innerText = '回測資料不足';
                 });
                 bestStrategyKey = null;
                 document.getElementById('best-hint').innerText = '';
@@ -393,13 +407,21 @@
             }
 
             const entries = Object.entries(bt).filter(([k]) => strategies.includes(k));
-            const best = entries.reduce((a, b) => a[1].avg_hit > b[1].avg_hit ? a : b)[0];
+            // 以「高命中佔比」決定最佳策略（比 avg_hit 更有意義，因為平均都接近隨機 1.5）
+            // tie-break 用 avg_hit
+            const best = entries.reduce((a, b) => {
+                const aScore = (a[1].high_hit_rate || 0) * 1000 + (a[1].avg_hit || 0);
+                const bScore = (b[1].high_hit_rate || 0) * 1000 + (b[1].avg_hit || 0);
+                return aScore > bScore ? a : b;
+            })[0];
             bestStrategyKey = best;
 
             entries.forEach(([key, r]) => {
                 const badge = document.getElementById('bt-badge-' + key);
+                if (!badge) return;
                 const crown = key === best ? ' 👑' : '';
-                badge.innerHTML = `回測 <b class="text-base">${r.avg_hit}</b>/6${crown}<span class="ml-1 opacity-80">· 高命中 ${r.high_hit_periods || 0}/${r.total_periods}</span>`;
+                // 強調高命中佔比為主、avg_hit 為輔
+                badge.innerHTML = `🎯 高命中 <b class="text-base">${r.high_hit_periods || 0}</b>/${r.total_periods}${crown}<span class="block opacity-75 text-[10px]">平均 ${r.avg_hit}/6</span>`;
                 if (key === best) {
                     document.getElementById('btn-' + key).classList.add('best-strategy');
                 }
@@ -612,7 +634,16 @@
         // 推薦下注 + 下注系統 + 紀錄 + 自動結算
         // ============================================================
 
-        const STRAT_LABEL = { pure_hot: '🌶️ 純熱門', hot: '🔥 追熱門', balanced: '⚖️ 均衡', luck: '🎲 拼運氣', random: '🌀 AI隨便挑' };
+        const STRAT_LABEL = {
+            pure_hot: '🌶️ 純熱門',
+            hot: '🔥 追熱門',
+            balanced: '⚖️ 均衡',
+            luck: '🎲 拼運氣',
+            consensus: '🎯 共識挑',
+            parity_zone: '🌐 區間平衡',
+            markov: '🔗 馬可夫',
+            random: '🌀 AI隨便挑',
+        };
 
         function renderBetGrid() {
             const grid = document.getElementById('bet-number-grid');
