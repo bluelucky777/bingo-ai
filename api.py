@@ -120,9 +120,9 @@ def predict():
 
         # 分析範圍受 limit 控制（給機率排行 / n_groups / 策略預測用）
         history_data = full_history[:limit]
-        # 顯示與下注結算用：至少 10 期（從原本的 60 降下來）
-        # 副作用：若使用者下注 >10 期，舊紀錄結算可能會抓不到較早的下注錨點
-        display_history = full_history[:max(limit, 10)]
+        # 顯示與下注結算用：至少 20 期
+        # 前端只顯示前 10 筆，其餘 10 筆當「結算緩衝」讓 10 期下注完還能往回查得到錨點
+        display_history = full_history[:max(limit, 20)]
         nums_only = [item['numbers'] for item in history_data]
         full_nums = [item['numbers'] for item in full_history]
 
