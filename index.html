@@ -575,18 +575,20 @@
             document.getElementById('eb-' + n).classList.add('expert-count-active');
             markDirty();
         }
-        // 策略：立即套用、立即打 API（用 current 既有套用設定 + 新策略）
+        // 策略：只改 pending strat + 視覺，等按鈕才套用（與其他選項一致）
+        let pendingStrat = 'hot';
         function setStrat(s) {
-            strat = s;
+            pendingStrat = s;
             document.querySelectorAll('.strat-btn').forEach(b => b.classList.remove('ring-4', 'ring-white/50'));
             document.getElementById('btn-' + s).classList.add('ring-4', 'ring-white/50');
-            fetchAnalysis();
+            markDirty();
         }
-        // 「設定已變更」按鈕：把 pending 同步進 current，再 fetch
+        // 「設定已變更」按鈕：把 pending 同步進 current（含 strat），再 fetch
         async function applyAndFetch() {
             currentLimit = pendingLimit;
             currentBallCount = pendingBallCount;
             expertBallCount = pendingExpertBallCount;
+            strat = pendingStrat;
             await fetchAnalysis();
             clearDirty();
         }
