@@ -423,7 +423,8 @@ def analyze_strategy(history_nums, strategy, n_groups, ball_count=6, rng=None):
 def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None):
     """
     回傳 9 個推薦池各自挑 ball_count 顆球。
-    Xij / 承 / 承 2.0 / 小天 / 暴暴龍 / Bob / Yang / Mix Lin / 本頻道的老祖宗
+    顯示順序依數據評分（A → D）：
+    本頻道的老祖宗 / Xij / 承 / Mix Lin / 承 2.0 / 小天 / 暴暴龍 / Yang / Bob
     """
     r = rng or random
     if not history_nums:
@@ -504,16 +505,17 @@ def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None):
         ]
         triangle_pool = triangle_strict + relaxed
 
+    # 顯示順序依數據評分（A → D），老祖宗強制第一
     pools = [
+        ("triangle", "本頻道的老祖宗", "高頻 ∩ 共伴 ∩ 不冷", triangle_pool),
         ("xij", "Xij:", "拖號（下一期同出 Top 15）", xij_pool),
         ("cheng", "承", "上期在近 5 期頻率", cheng_pool),
+        ("mixlin", "Mix Lin", "全期熱號 Top 10", mixlin_pool),
         ("cheng2", "承 2.0", "近 20 期熱 + 近 10 期冷", cheng2_pool),
         ("xiaotian", "小天", "上期最熱尾數", xiaotian_pool),
         ("baobaolong", "暴暴龍", "上期 ±1 鄰號", baobaolong_pool),
-        ("bob", "Bob", "頭尾各 10 號", bob_pool),
         ("yang", "Yang", "上期 ±1 雙夾", yang_pool),
-        ("mixlin", "Mix Lin", "全期熱號 Top 10", mixlin_pool),
-        ("triangle", "本頻道的老祖宗", "高頻 ∩ 共伴 ∩ 不冷", triangle_pool),
+        ("bob", "Bob", "頭尾各 10 號", bob_pool),
     ]
 
     result = []
