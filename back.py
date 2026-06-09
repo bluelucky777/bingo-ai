@@ -423,7 +423,7 @@ def analyze_strategy(history_nums, strategy, n_groups, ball_count=6, rng=None):
 def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None):
     """
     回傳 9 個推薦池各自挑 ball_count 顆球。
-    Xij / 承 / 承 2.0 / 小天 / 暴暴龍 / Bob / Yang / Mix Lin / 鐵三角
+    Xij / 承 / 承 2.0 / 小天 / 暴暴龍 / Bob / Yang / Mix Lin / 本頻道的老祖宗
     """
     r = rng or random
     if not history_nums:
@@ -474,7 +474,7 @@ def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None):
     # Mix Lin: 全期熱號 Top 10
     mixlin_pool = [n for n, _ in counts.most_common(10)]
 
-    # 鐵三角: 高頻 ∩ 共伴 ∩ 不冷（三項獨立訊號交集，空時降級 3 取 2）
+    # 本頻道的老祖宗: 高頻 ∩ 共伴 ∩ 不冷（三項獨立訊號交集，空時降級 3 取 2）
     # 訊號 1：高頻 — 加權熱號 Top 25
     hot_top25 = set(n for n, _ in sorted(weighted.items(), key=lambda x: -x[1])[:25])
     # 訊號 2：共伴 — 與上期任一號碼的同出加權 Top 25
@@ -513,7 +513,7 @@ def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None):
         ("bob", "Bob", "頭尾各 10 號", bob_pool),
         ("yang", "Yang", "上期 ±1 雙夾", yang_pool),
         ("mixlin", "Mix Lin", "全期熱號 Top 10", mixlin_pool),
-        ("triangle", "鐵三角", "高頻 ∩ 共伴 ∩ 不冷", triangle_pool),
+        ("triangle", "本頻道的老祖宗", "高頻 ∩ 共伴 ∩ 不冷", triangle_pool),
     ]
 
     result = []
