@@ -23,6 +23,19 @@
         .bet-hit { color: #34d399; font-weight: bold; }
         .bet-miss { color: #64748b; }
         .bet-pending { color: #fbbf24; font-style: italic; }
+        /* 全中：金色光暈強調 */
+        .bet-all-hit {
+            background: linear-gradient(90deg, rgba(250,204,21,0.18), rgba(250,204,21,0.06));
+            border-left: 3px solid #facc15 !important;
+            box-shadow: 0 0 14px rgba(250, 204, 21, 0.35);
+            padding-left: 8px !important;
+            border-radius: 4px;
+        }
+        .bet-all-hit-text {
+            color: #facc15;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(250, 204, 21, 0.7);
+        }
         .analysis-tab { color: #cbd5e1; }
         .analysis-tab:hover { background-color: #334155; }
         .analysis-tab-active { background-color: #10b981 !important; color: #0f172a !important; box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
@@ -882,6 +895,19 @@
                         ? `<span class="bet-hit">已結算完畢：${bet.periods} 期共中 ${totalHits} 個號碼</span>`
                         : `<span class="bet-pending">已開 ${settledCount}/${bet.periods} 期，目前累計中 ${totalHits} 個（剩餘 ${bet.periods - settledCount} 期未開獎）</span>`;
 
+                // 命中分佈統計：對已結算各期的 hit_count 分桶計數
+                let distHtml = '';
+                if (settledCount > 0) {
+                    const dist = {};
+                    settledResults.forEach(r => {
+                        dist[r.hit_count] = (dist[r.hit_count] || 0) + 1;
+                    });
+                    const sortedKeys = Object.keys(dist).map(Number).sort((a, b) => a - b);
+                    distHtml = `<div class="text-xs text-slate-400 mb-2 flex flex-wrap gap-x-3 gap-y-1">${
+                        sortedKeys.map(k => `<span>中 ${k} 個 <span class="text-slate-200 font-bold">${dist[k]}</span> 筆</span>`).join('')
+                    }</div>`;
+                }
+
                 const rowsHtml = bet.results.map((r, idx) => {
                     if (r.out_of_range) {
                         return `<div class="text-xs flex gap-2 py-1 border-t border-slate-700/40"><span class="font-mono text-slate-400">第 ${idx + 1} 期</span><span class="text-rose-400">資料缺漏</span></div>`;
@@ -923,6 +949,7 @@
                         </div>
                         <div class="mb-2 tracking-wider text-fuchsia-300 font-bold">${bet.numbers.join(' ')}</div>
                         <div class="text-sm mb-2">${summary}</div>
+                        ${distHtml}
                         <details class="text-xs">
                             <summary class="cursor-pointer text-slate-400 hover:text-slate-200">展開各期結果</summary>
                             <div class="mt-2">${rowsHtml}</div>
