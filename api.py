@@ -23,6 +23,7 @@ from back import (
     analyze_star_levels,
     backtest_strategy,
     get_expert_strategies,
+    get_frequency_bias_report,
     get_n_groups,
     get_strategy_analysis,
     plain_counts,
@@ -142,6 +143,8 @@ def predict():
         star_levels = analyze_star_levels(n_groups)
         strategies = get_strategy_analysis(nums_only, n_groups, counts)
         expert = get_expert_strategies(nums_only, n_groups, expert_count)
+        # bias 報告用全期統計（不受 limit 影響），讓樣本量盡量大
+        bias_report = get_frequency_bias_report(full_nums)
 
         # 回測：最貴的部分，用 last_update 當 key 快取；切換 limit/strategy/ball 都命中
         backtest = {}
@@ -171,6 +174,7 @@ def predict():
             "star_levels": star_levels,
             "strategies": strategies,
             "expert_strategies": expert,
+            "bias_report": bias_report,
             "backtest": backtest,
             "recommended_bet": best_strategy_prediction,
         })

@@ -418,108 +418,203 @@ def analyze_strategy(history_nums, strategy, n_groups, ball_count=6, rng=None):
     return [{"num": n, "count": counts.get(n, 0)} for n in final[:ball_count]]
 
 
-# ---------- 脆友 9 個攻略推薦池 ----------
+# ---------- 脆友攻略推薦池 ----------
 
-def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None):
+def _compute_strategy_pools(history_nums, n_groups=None):
+    """從 history 切片計算 8 個基礎策略池的候選清單（給 expert + backtest 共用）。
+
+    n_groups=None 時跳過 xij（它依賴上游 n_groups 計算結果）。
     """
-    回傳 9 個推薦池各自挑 ball_count 顆球。
-    顯示順序依數據評分（A → D）：
-    本頻道的老祖宗 / Xij / 承 / Mix Lin / 承 2.0 / 小天 / 暴暴龍 / Yang / Bob
-    """
-    r = rng or random
     if not history_nums:
-        return []
+        return {}
 
     latest = history_nums[0]
-    prev = history_nums[1] if len(history_nums) > 1 else []
     weighted = compute_weighted_counts(history_nums)
-
-    # Xij: 拖號（用 N3 的真正定義）
-    xij_pool = [x['num'] for x in n_groups.get('n3', [])]
-
-    # 承: 最新一期號碼在近 5 期的頻率排序（read.md 原始定義）
-    h5 = history_nums[:5]
-    f5 = plain_counts(h5)
-    cheng_pool = sorted(latest, key=lambda x: -f5.get(x, 0)) if latest else []
-
-    # 承 2.0: 近 20 期 >4 次 但近 10 期 ≤1 次（低頻熱號）
-    h20, h10 = history_nums[:20], history_nums[:10]
-    f20, f10 = plain_counts(h20), plain_counts(h10)
-    cheng2_pool = [n for n in ALL_NUMS if f20.get(n, 0) > 4 and f10.get(n, 0) <= 1]
-    cheng2_pool += [n for n, _ in f20.most_common(10) if n not in cheng2_pool]
-
     counts = plain_counts(history_nums)
+    latest_int = {int(n) for n in latest}
 
-    # 小天: 上期出現最多的尾數對應的所有號碼
+    pools = {}
+
+    if n_groups is not None:
+        pools['xij'] = [x['num'] for x in n_groups.get('n3', [])]
+
+    # 承
+    f5 = plain_counts(history_nums[:5])
+    pools['cheng'] = sorted(latest, key=lambda x: -f5.get(x, 0)) if latest else []
+
+    # 承 2.0
+    f20 = plain_counts(history_nums[:20])
+    f10 = plain_counts(history_nums[:10])
+    cheng2 = [n for n in ALL_NUMS if f20.get(n, 0) > 4 and f10.get(n, 0) <= 1]
+    cheng2 += [n for n, _ in f20.most_common(10) if n not in cheng2]
+    pools['cheng2'] = cheng2
+
+    # 小天
     tail_map = collections.Counter(n[-1] for n in latest)
     if tail_map:
         top_tail = tail_map.most_common(1)[0][0]
-        xiaotian_pool = [n for n in ALL_NUMS if n.endswith(top_tail)]
+        pools['xiaotian'] = [n for n in ALL_NUMS if n.endswith(top_tail)]
     else:
-        xiaotian_pool = []
+        pools['xiaotian'] = []
 
-    # 暴暴龍: 跟上期任一號碼相鄰（±1）
-    latest_int = {int(n) for n in latest}
-    baobaolong_pool = [n for n in ALL_NUMS
-                       if (int(n) - 1) in latest_int or (int(n) + 1) in latest_int]
+    # 暴暴龍
+    pools['baobaolong'] = [n for n in ALL_NUMS
+                           if (int(n) - 1) in latest_int or (int(n) + 1) in latest_int]
 
-    # Bob: 頭 10 + 尾 10
-    bob_pool = ALL_NUMS[:10] + ALL_NUMS[-10:]
+    # Bob
+    pools['bob'] = ALL_NUMS[:10] + ALL_NUMS[-10:]
 
-    # Yang: 同時 n-1 和 n+1 都在上期
-    yang_pool = [n for n in ALL_NUMS
-                 if (int(n) - 1) in latest_int and (int(n) + 1) in latest_int]
-    if not yang_pool:
-        yang_pool = baobaolong_pool  # 太嚴苛時降級
+    # Yang（降級到暴暴龍）
+    yang = [n for n in ALL_NUMS
+            if (int(n) - 1) in latest_int and (int(n) + 1) in latest_int]
+    pools['yang'] = yang if yang else pools['baobaolong']
 
-    # Mix Lin: 全期熱號 Top 10
-    mixlin_pool = [n for n, _ in counts.most_common(10)]
+    # Mix Lin
+    pools['mixlin'] = [n for n, _ in counts.most_common(10)]
 
-    # 本頻道的老祖宗: 高頻 ∩ 共伴 ∩ 不冷（三項獨立訊號交集，空時降級 3 取 2）
-    # 訊號 1：高頻 — 加權熱號 Top 25
+    # 本頻道的老祖宗（高頻 ∩ 共伴 ∩ 不冷，空時降級 3 取 2）
     hot_top25 = set(n for n, _ in sorted(weighted.items(), key=lambda x: -x[1])[:25])
-    # 訊號 2：共伴 — 與上期任一號碼的同出加權 Top 25
     cooc = build_cooc_matrix(history_nums)
     partner_scores = collections.Counter()
     for n in latest:
         for partner, score in cooc.get(n, {}).items():
             partner_scores[partner] += score
     partner_top25 = set(n for n, _ in partner_scores.most_common(25))
-    # 訊號 3：不冷 — last_seen ≤ 5 期（避開長期冷號）
     last_seen = {n: 999 for n in ALL_NUMS}
     for i, draw in enumerate(history_nums):
         for n in draw:
             if last_seen[n] == 999:
                 last_seen[n] = i
     warm_set = {n for n in ALL_NUMS if last_seen[n] <= 5}
-    # 嚴格交集
     triangle_strict = list(hot_top25 & partner_top25 & warm_set)
-    if len(triangle_strict) >= max(ball_count, 6):
+    if len(triangle_strict) >= 6:
         triangle_pool = triangle_strict
     else:
-        # 降級：3 取 2（任 2 訊號同時成立）— 嚴格交集排前面
         relaxed = [
             n for n in ALL_NUMS
             if n not in triangle_strict
             and sum(n in s for s in (hot_top25, partner_top25, warm_set)) >= 2
         ]
         triangle_pool = triangle_strict + relaxed
+    pools['triangle'] = triangle_pool
 
-    # 顯示順序依數據評分（A → D），老祖宗強制第一
-    pools = [
-        ("triangle", "本頻道的老祖宗", "高頻 ∩ 共伴 ∩ 不冷", triangle_pool),
-        ("xij", "Xij:", "拖號（下一期同出 Top 15）", xij_pool),
-        ("cheng", "承", "上期在近 5 期頻率", cheng_pool),
-        ("mixlin", "Mix Lin", "全期熱號 Top 10", mixlin_pool),
-        ("cheng2", "承 2.0", "近 20 期熱 + 近 10 期冷", cheng2_pool),
-        ("xiaotian", "小天", "上期最熱尾數", xiaotian_pool),
-        ("baobaolong", "暴暴龍", "上期 ±1 鄰號", baobaolong_pool),
-        ("yang", "Yang", "上期 ±1 雙夾", yang_pool),
-        ("bob", "Bob", "頭尾各 10 號", bob_pool),
+    return pools
+
+
+def _backtest_champion(history_nums, lookback=30):
+    """對每個池子做 lookback 期回放：分數 = 池 ∩ 下期實開 / 池大小 的平均。
+
+    跳過 xij（n_groups 在 backtest 不可得）。資料 < lookback + 10 期回 (None, None, {}).
+    """
+    if len(history_nums) < lookback + 10:
+        return None, None, {}
+
+    name_map = {
+        'cheng': '承', 'cheng2': '承 2.0', 'xiaotian': '小天',
+        'baobaolong': '暴暴龍', 'bob': 'Bob', 'yang': 'Yang',
+        'mixlin': 'Mix Lin', 'triangle': '本頻道的老祖宗',
+    }
+    score_sums = collections.defaultdict(float)
+    score_counts = collections.defaultdict(int)
+
+    for i in range(lookback):
+        past = history_nums[i + 1:]
+        if not past:
+            continue
+        actual = set(history_nums[i])
+        past_pools = _compute_strategy_pools(past, n_groups=None)
+        for name, pool_set in past_pools.items():
+            unique = set(pool_set)
+            if not unique:
+                continue
+            hit_rate = len(unique & actual) / len(unique)
+            score_sums[name] += hit_rate
+            score_counts[name] += 1
+
+    avg_scores = {k: score_sums[k] / score_counts[k]
+                  for k in score_sums if score_counts[k] > 0}
+    if not avg_scores:
+        return None, None, {}
+
+    champion_key = max(avg_scores, key=avg_scores.get)
+    return champion_key, name_map.get(champion_key, champion_key), avg_scores
+
+
+def _top_cooccurrence_triple_pool(history_nums, top_n_triples=10, recent_cap=500):
+    """找歷史最常 3 顆同開的 N 組三人組，聯集成候選池。
+
+    recent_cap 防呆：避免極長歷史下 O(C(20,3) × periods) 爆掉。
+    """
+    if not history_nums:
+        return []
+
+    recent = history_nums[:recent_cap]
+    triple_counts = collections.Counter()
+    for draw in recent:
+        unique = sorted(set(draw))
+        n = len(unique)
+        if n < 3:
+            continue
+        for i in range(n):
+            for j in range(i + 1, n):
+                for k in range(j + 1, n):
+                    triple_counts[(unique[i], unique[j], unique[k])] += 1
+
+    if not triple_counts:
+        return []
+
+    pool = []
+    seen = set()
+    for triple, _ in triple_counts.most_common(top_n_triples):
+        for n in triple:
+            if n not in seen:
+                seen.add(n)
+                pool.append(n)
+    return pool
+
+
+def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None):
+    """
+    回傳 11 個推薦池各自挑 ball_count 顆球（含 3 個進階：老祖宗 / 回測冠軍 / 三人組同出）。
+
+    顯示順序依數據評分（A+ → D）固定排序，老祖宗永遠第一順位。
+    """
+    r = rng or random
+    if not history_nums:
+        return []
+
+    weighted = compute_weighted_counts(history_nums)
+    pools_dict = _compute_strategy_pools(history_nums, n_groups)
+
+    # 回測冠軍：歷史 30 期表現最佳池的「當期」候選池
+    champion_key, champion_name_zh, _ = _backtest_champion(history_nums, lookback=30)
+    if champion_key and champion_key in pools_dict:
+        pools_dict['champion'] = pools_dict[champion_key]
+        champion_label = f"回測冠軍：{champion_name_zh}"
+    else:
+        pools_dict['champion'] = []
+        champion_label = "回測冠軍（資料不足）"
+
+    # 三人組同出：歷史最常 3 顆同開的鐵三角們
+    pools_dict['cluster3'] = _top_cooccurrence_triple_pool(history_nums, top_n_triples=10)
+
+    pools_meta = [
+        ("triangle", "本頻道的老祖宗", "高頻 ∩ 共伴 ∩ 不冷"),
+        ("champion", champion_label, "近 30 期表現最佳池當期候選"),
+        ("cluster3", "三人組同出", "歷史最常 3 顆同開的鐵三角們"),
+        ("xij", "Xij:", "拖號（下一期同出 Top 15）"),
+        ("cheng", "承", "上期在近 5 期頻率"),
+        ("mixlin", "Mix Lin", "全期熱號 Top 10"),
+        ("cheng2", "承 2.0", "近 20 期熱 + 近 10 期冷"),
+        ("xiaotian", "小天", "上期最熱尾數"),
+        ("baobaolong", "暴暴龍", "上期 ±1 鄰號"),
+        ("yang", "Yang", "上期 ±1 雙夾"),
+        ("bob", "Bob", "頭尾各 10 號"),
     ]
 
     result = []
-    for key, name, desc, pool in pools:
+    for key, name, desc in pools_meta:
+        pool = pools_dict.get(key, [])
         if not pool:
             pool = list(ALL_NUMS)
         weighted_pool = _to_weight_pool(pool, weighted)
@@ -528,6 +623,55 @@ def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None):
         result.append({"key": key, "name": name, "desc": desc, "picks": picks})
 
     return result
+
+
+def get_frequency_bias_report(history_nums, z_threshold=1.96):
+    """跑全期統計，列出超出 95% 信賴區間的「真熱號」/「真冷號」。
+
+    模型：每號每期出現 ~ Binomial(N, 0.25)，期望 = N*0.25，變異 = N*0.25*0.75。
+    z = (observed - expected) / sqrt(variance)。|z| > 1.96 視為偏差顯著。
+
+    若整盤幾乎無 |z|>1.96 → PRNG 真隨機，任何頻率策略都只有 25% 上限。
+    若有明顯偏差 → 可能有 PRNG bias 或機構偏好，熱號策略才有意義。
+    """
+    if not history_nums:
+        return {"total_periods": 0, "hot_numbers": [], "cold_numbers": []}
+
+    counts = plain_counts(history_nums)
+    n_periods = len(history_nums)
+    expected = n_periods * 20 / 80  # = n_periods * 0.25
+    std = math.sqrt(expected * 0.75) if expected > 0 else 0
+
+    details = []
+    for num in ALL_NUMS:
+        observed = counts.get(num, 0)
+        z = (observed - expected) / std if std > 0 else 0
+        if z > z_threshold:
+            status = 'hot'
+        elif z < -z_threshold:
+            status = 'cold'
+        else:
+            status = 'normal'
+        details.append({
+            'num': num,
+            'observed': observed,
+            'expected': round(expected, 1),
+            'z_score': round(z, 2),
+            'status': status,
+        })
+
+    hot = sorted([d for d in details if d['status'] == 'hot'], key=lambda x: -x['z_score'])
+    cold = sorted([d for d in details if d['status'] == 'cold'], key=lambda x: x['z_score'])
+
+    return {
+        'total_periods': n_periods,
+        'expected_per_num': round(expected, 1),
+        'z_threshold': z_threshold,
+        'hot_count': len(hot),
+        'cold_count': len(cold),
+        'hot_numbers': hot,
+        'cold_numbers': cold,
+    }
 
 
 # ---------- 回測 ----------
