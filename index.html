@@ -704,8 +704,12 @@
             }
         }
 
+        const BET_MAX_KEEP = 20;  // 下注紀錄最多保留 20 筆，超出自動丟最舊的
+
         function saveBets(bets) {
-            localStorage.setItem(BET_STORAGE_KEY, JSON.stringify(bets));
+            // bets 是按時間新→舊排序（confirmBet 用 unshift），只保留前 20 筆
+            const trimmed = bets.slice(0, BET_MAX_KEEP);
+            localStorage.setItem(BET_STORAGE_KEY, JSON.stringify(trimmed));
         }
 
         function deleteBet(id) {
