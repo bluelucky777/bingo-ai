@@ -151,7 +151,7 @@
 
         <!-- 脆友的攻略推薦 -->
         <div class="bg-slate-800 p-6 rounded-xl border-l-8 border-yellow-500 shadow-lg">
-            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
                 <h3 id="expert-title" class="text-xl font-bold text-yellow-500">💡 脆友的攻略推薦</h3>
                 <div class="flex gap-1 bg-slate-900/50 p-1 rounded-lg">
                     <script>
@@ -161,6 +161,7 @@
                     </script>
                 </div>
             </div>
+            <button onclick="batchBetAllExperts()" class="w-full mb-4 bg-fuchsia-600 hover:bg-fuchsia-500 py-2.5 rounded-lg font-bold text-sm">⚡ 一鍵下注全部脆友策略（10 期）</button>
             <div id="strat-logic" class="space-y-4 text-lg">載入中...</div>
         </div>
 
@@ -220,7 +221,7 @@
                     <div class="flex gap-1 flex-wrap">
                         <script>
                             for(let i=1; i<=10; i++) {
-                                document.write(`<button onclick="setBetPeriods(${i})" id="bp-${i}" class="bp-btn px-2.5 py-1 rounded text-xs font-bold border border-transparent bg-slate-700 ${i===1?'bp-active':''}">${i} 期</button>`);
+                                document.write(`<button onclick="setBetPeriods(${i})" id="bp-${i}" class="bp-btn px-2.5 py-1 rounded text-xs font-bold border border-transparent bg-slate-700 ${i===10?'bp-active':''}">${i} 期</button>`);
                             }
                         </script>
                     </div>
@@ -289,7 +290,7 @@
         // 下注系統狀態
         const BET_STORAGE_KEY = 'bingo_bets_v1';
         let betSelected = new Set();
-        let betPeriods = 1;
+        let betPeriods = 10;  // 預設下注 10 期
         let latestHistory = [];   // 最新一次 fetchAnalysis 拿到的 history（給結算用）
         let lastPeriodFromApi = null;
         let analysisTab = 'history';  // history | n-groups | g-strats | star-levels
@@ -492,6 +493,42 @@
             renderBetGrid();
             renderBetSelected();
             document.getElementById('bet-number-grid').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // 一鍵下注所有脆友策略：每個策略各下一筆，10 期，source = 脆友：xxx
+        function batchBetAllExperts() {
+            if (!currentExperts || !currentExperts.length) {
+                alert('脆友策略尚未載入，請等候資料同步');
+                return;
+            }
+            if (!lastPeriodFromApi) {
+                alert('期數資料尚未載入，請稍候');
+                return;
+            }
+            const validExperts = currentExperts.filter(s => s.picks && s.picks.length > 0);
+            if (!validExperts.length) {
+                alert('沒有可下注的脆友策略');
+                return;
+            }
+            if (!confirm(`確定一鍵下注 ${validExperts.length} 個脆友策略？每筆都會追蹤 10 期`)) return;
+
+            const bets = loadBets();
+            const baseTs = Date.now();
+            validExperts.forEach((s, i) => {
+                bets.unshift({
+                    id: `b_${baseTs}_${i}_${Math.random().toString(36).slice(2, 5)}`,
+                    created_at: new Date().toLocaleString('zh-TW', { hour12: false }),
+                    bet_period: String(lastPeriodFromApi),
+                    periods: 10,
+                    numbers: [...s.picks].sort(),
+                    source: `脆友：${s.name}`,
+                    results: [],
+                });
+            });
+            saveBets(bets);
+            settleAllBets();
+            renderBetHistory();
+            alert(`✅ 已新增 ${validExperts.length} 筆下注紀錄（可切到「📋 下注紀錄」分頁查看）`);
         }
 
         function renderExpertStrategies(experts) {
