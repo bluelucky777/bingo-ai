@@ -228,7 +228,10 @@
             <div class="bg-slate-800 p-5 rounded-2xl border-l-8 border-teal-500 shadow-xl">
                 <div class="flex justify-between items-center mb-3">
                     <h3 class="text-lg font-bold text-teal-400">📋 下注紀錄 <span class="text-xs text-slate-500 font-normal">（最多保留 20 期）</span></h3>
-                    <button onclick="clearAllBets()" class="text-xs text-slate-400 hover:text-rose-400">🗑️ 清空</button>
+                    <div class="flex gap-3">
+                        <button onclick="toggleAllBetDetails()" id="toggle-all-bets-btn" class="text-xs text-slate-400 hover:text-cyan-400">📂 全部展開</button>
+                        <button onclick="clearAllBets()" class="text-xs text-slate-400 hover:text-rose-400">🗑️ 清空</button>
+                    </div>
                 </div>
                 <p class="text-xs text-slate-500 mb-3">存在 localStorage，清瀏覽器資料會消失</p>
                 <div id="bet-history-list" class="space-y-3">尚無下注紀錄</div>
@@ -724,6 +727,16 @@
             renderBetHistory();
         }
 
+        // 一鍵展開 / 收合所有下注紀錄的「各期結果」
+        function toggleAllBetDetails() {
+            const allDetails = document.querySelectorAll('#bet-history-list details');
+            if (!allDetails.length) return;
+            const anyClosed = Array.from(allDetails).some(d => !d.open);
+            allDetails.forEach(d => { d.open = anyClosed; });
+            const btn = document.getElementById('toggle-all-bets-btn');
+            if (btn) btn.innerText = anyClosed ? '📁 全部收合' : '📂 全部展開';
+        }
+
         // 自動結算：根據 latestHistory 的索引比對開獎號碼
         // 設計：用 bet_period 在 history（desc 排序）中的位置當錨點，往新方向取 N 筆作為下注追蹤期數
         // 好處：不需算術預測，可避開期數步進非定值（多數 10、跨日可能 250）造成的偏移
@@ -788,6 +801,9 @@
         function renderBetHistory() {
             const bets = loadBets();
             const box = document.getElementById('bet-history-list');
+            // 重新渲染後所有 <details> 都重置為關閉 → 同步把按鈕文字復原
+            const toggleBtn = document.getElementById('toggle-all-bets-btn');
+            if (toggleBtn) toggleBtn.innerText = '📂 全部展開';
             if (!bets.length) {
                 box.innerHTML = '<p class="text-slate-500 text-sm">尚無下注紀錄</p>';
                 return;
