@@ -418,12 +418,12 @@ def analyze_strategy(history_nums, strategy, n_groups, ball_count=6, rng=None):
     return [{"num": n, "count": counts.get(n, 0)} for n in final[:ball_count]]
 
 
-# ---------- 脆友 9 個攻略推薦池 ----------
+# ---------- 脆友 8 個攻略推薦池 ----------
 
 def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None):
     """
-    回傳 9 個推薦池各自挑 ball_count 顆球。
-    Xij / 承 / 承 2.0 / 中的 / 小天 / 暴暴龍 / Bob / Yang / Mix Lin
+    回傳 8 個推薦池各自挑 ball_count 顆球。
+    Xij / 承 / 承 2.0 / 小天 / 暴暴龍 / Bob / Yang / Mix Lin
     """
     r = rng or random
     if not history_nums:
@@ -446,9 +446,6 @@ def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None):
     f20, f10 = plain_counts(h20), plain_counts(h10)
     cheng2_pool = [n for n in ALL_NUMS if f20.get(n, 0) > 4 and f10.get(n, 0) <= 1]
     cheng2_pool += [n for n, _ in f20.most_common(10) if n not in cheng2_pool]
-
-    # 中的: 純隨機靈感
-    zhongde_pool = list(ALL_NUMS)
 
     counts = plain_counts(history_nums)
 
@@ -481,7 +478,6 @@ def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None):
         ("xij", "Xij:", "拖號（下一期同出 Top 15）", xij_pool),
         ("cheng", "承", "上期在近 5 期頻率", cheng_pool),
         ("cheng2", "承 2.0", "近 20 期熱 + 近 10 期冷", cheng2_pool),
-        ("zhongde", "中的", "靈感隨機", zhongde_pool),
         ("xiaotian", "小天", "上期最熱尾數", xiaotian_pool),
         ("baobaolong", "暴暴龍", "上期 ±1 鄰號", baobaolong_pool),
         ("bob", "Bob", "頭尾各 10 號", bob_pool),
