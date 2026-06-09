@@ -245,7 +245,7 @@
         <div id="pane-bets" class="page-pane hidden">
             <div class="bg-slate-800 p-5 rounded-2xl border-l-8 border-teal-500 shadow-xl">
                 <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-lg font-bold text-teal-400">📋 下注紀錄 <span class="text-xs text-slate-500 font-normal">（最多保留 20 期）</span></h3>
+                    <h3 class="text-lg font-bold text-teal-400">📋 下注紀錄 <span class="text-xs text-slate-500 font-normal">（最多保留 30 期）</span></h3>
                     <div class="flex gap-3">
                         <button onclick="toggleAllBetDetails()" id="toggle-all-bets-btn" class="text-xs text-slate-400 hover:text-cyan-400">📂 全部展開</button>
                         <button onclick="clearAllBets()" class="text-xs text-slate-400 hover:text-rose-400">🗑️ 清空</button>
@@ -770,7 +770,7 @@
             }
         }
 
-        const BET_MAX_KEEP = 20;  // 下注紀錄最多保留 20 筆，超出自動丟最舊的
+        const BET_MAX_KEEP = 30;  // 下注紀錄最多保留 30 筆，超出自動丟最舊的
 
         function saveBets(bets) {
             // bets 是按時間新→舊排序（confirmBet 用 unshift），只保留前 20 筆
