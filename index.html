@@ -57,6 +57,14 @@
             </div>
         </header>
 
+        <!-- 主分頁：分析預測 / 下注紀錄 -->
+        <div class="flex gap-2 mb-6 bg-slate-800 p-1 rounded-xl border border-slate-700">
+            <button onclick="switchPageTab('analysis')" id="page-tab-analysis" class="page-tab flex-1 px-4 py-2.5 rounded-lg font-bold text-sm transition-all bg-yellow-500 text-slate-900">📊 分析預測</button>
+            <button onclick="switchPageTab('bets')" id="page-tab-bets" class="page-tab flex-1 px-4 py-2.5 rounded-lg font-bold text-sm transition-all bg-slate-700 text-slate-300 hover:bg-slate-600">📋 下注紀錄</button>
+        </div>
+
+        <!-- ========== Tab 1：分析預測 + 下注區 ========== -->
+        <div id="pane-analysis" class="page-pane">
         <!-- 主版面：左 = 分析內容、右 = 下注區 (桌面 lg 才分欄) -->
         <div class="flex flex-col lg:flex-row gap-6">
 
@@ -224,7 +232,16 @@
                 </div>
             </div>
 
-            <!-- 下注紀錄 -->
+        </aside>
+        <!-- ========== /右欄 ========== -->
+
+        </div>
+        <!-- /主版面 -->
+        </div>
+        <!-- /pane-analysis -->
+
+        <!-- ========== Tab 2：下注紀錄（全寬） ========== -->
+        <div id="pane-bets" class="page-pane hidden">
             <div class="bg-slate-800 p-5 rounded-2xl border-l-8 border-teal-500 shadow-xl">
                 <div class="flex justify-between items-center mb-3">
                     <h3 class="text-lg font-bold text-teal-400">📋 下注紀錄 <span class="text-xs text-slate-500 font-normal">（最多保留 20 期）</span></h3>
@@ -236,12 +253,8 @@
                 <p class="text-xs text-slate-500 mb-3">存在 localStorage，清瀏覽器資料會消失</p>
                 <div id="bet-history-list" class="space-y-3">尚無下注紀錄</div>
             </div>
-
-        </aside>
-        <!-- ========== /右欄 ========== -->
-
         </div>
-        <!-- /主版面 -->
+        <!-- /pane-bets -->
     </div>
 
     <script>
@@ -610,6 +623,19 @@
             document.getElementById('tab-' + tab).classList.add('analysis-tab-active');
             document.querySelectorAll('.analysis-pane').forEach(p => p.classList.add('hidden'));
             document.getElementById('pane-' + tab).classList.remove('hidden');
+        }
+
+        // 切主分頁（分析預測 / 下注紀錄）
+        function switchPageTab(name) {
+            document.querySelectorAll('.page-pane').forEach(p => p.classList.add('hidden'));
+            document.getElementById('pane-' + name).classList.remove('hidden');
+            document.querySelectorAll('.page-tab').forEach(b => {
+                b.classList.remove('bg-yellow-500', 'text-slate-900');
+                b.classList.add('bg-slate-700', 'text-slate-300', 'hover:bg-slate-600');
+            });
+            const activeBtn = document.getElementById('page-tab-' + name);
+            activeBtn.classList.remove('bg-slate-700', 'text-slate-300', 'hover:bg-slate-600');
+            activeBtn.classList.add('bg-yellow-500', 'text-slate-900');
         }
 
         // ============================================================
