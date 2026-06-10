@@ -590,10 +590,10 @@ def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None):
     champion_key, champion_name_zh, _ = _backtest_champion(history_nums, lookback=30)
     if champion_key and champion_key in pools_dict:
         pools_dict['champion'] = pools_dict[champion_key]
-        champion_label = f"回測冠軍：{champion_name_zh}"
+        champion_label = f"老祖宗的回測冠軍：{champion_name_zh}"
     else:
         pools_dict['champion'] = []
-        champion_label = "回測冠軍（資料不足）"
+        champion_label = "老祖宗的回測冠軍（資料不足）"
 
     # 三人組同出：歷史最常 3 顆同開的鐵三角們
     pools_dict['cluster3'] = _top_cooccurrence_triple_pool(history_nums, top_n_triples=10)
@@ -601,7 +601,7 @@ def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None):
     pools_meta = [
         ("triangle", "本頻道的老祖宗", "高頻 ∩ 共伴 ∩ 不冷"),
         ("champion", champion_label, "近 30 期表現最佳池當期候選"),
-        ("cluster3", "三人組同出", "歷史最常 3 顆同開的鐵三角們"),
+        ("cluster3", "老祖宗的三人", "歷史最常 3 顆同開的鐵三角們"),
         ("xij", "Xij:", "拖號（下一期同出 Top 15）"),
         ("cheng", "承", "上期在近 5 期頻率"),
         ("mixlin", "Mix Lin", "全期熱號 Top 10"),
