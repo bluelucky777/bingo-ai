@@ -600,8 +600,8 @@ def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None, full_h
     # 回測冠軍 + 三人組用「完整歷史」（不受 limit 影響），否則 10 期下永遠 < 40 觸發資料不足
     full = full_history_nums if full_history_nums else history_nums
 
-    # 回測冠軍：歷史 30 期表現最佳池的「當期」候選池
-    champion_key, champion_name_zh, _ = _backtest_champion(full, lookback=30)
+    # 回測冠軍：歷史 20 期表現最佳池的「當期」候選池
+    champion_key, champion_name_zh, _ = _backtest_champion(full, lookback=20)
     if champion_key:
         # 冠軍當期候選池也用 full 算（保持與 backtest 一致的資料基礎）
         full_pools_for_champion = _compute_strategy_pools(full, n_groups=None)
@@ -616,7 +616,7 @@ def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None, full_h
 
     pools_meta = [
         ("triangle", "本頻道的老祖宗", "高頻 ∩ 共伴 ∩ 不冷"),
-        ("champion", champion_label, "近 30 期表現最佳池當期候選"),
+        ("champion", champion_label, "近 20 期表現最佳池當期候選"),
         ("cluster3", "老祖宗的三人", "歷史最常 3 顆同開的鐵三角們"),
         ("xij", "Xij:", "拖號（下一期同出 Top 15）"),
         ("cheng", "承", "上期在近 5 期頻率"),
