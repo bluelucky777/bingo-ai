@@ -258,7 +258,7 @@
         <div id="pane-bets" class="page-pane hidden">
             <div class="bg-slate-800 p-5 rounded-2xl border-l-8 border-teal-500 shadow-xl">
                 <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-lg font-bold text-teal-400">📋 下注紀錄 <span class="text-xs text-slate-500 font-normal">（最多保留 30 期）</span></h3>
+                    <h3 class="text-lg font-bold text-teal-400">📋 下注紀錄 <span class="text-xs text-slate-500 font-normal">（最多保留 40 期）</span></h3>
                     <div class="flex gap-3">
                         <button onclick="toggleAllBetDetails()" id="toggle-all-bets-btn" class="text-xs text-slate-400 hover:text-cyan-400">📂 全部展開</button>
                         <button onclick="clearAllBets()" class="text-xs text-slate-400 hover:text-rose-400">🗑️ 清空</button>
@@ -783,7 +783,7 @@
             }
         }
 
-        const BET_MAX_KEEP = 30;  // 下注紀錄最多保留 30 筆，超出自動丟最舊的
+        const BET_MAX_KEEP = 40;  // 下注紀錄最多保留 40 筆，超出自動丟最舊的
 
         function saveBets(bets) {
             // bets 是按時間新→舊排序（confirmBet 用 unshift），只保留前 20 筆
@@ -889,11 +889,16 @@
                 const outOfRange = bet.results.some(r => r.out_of_range);
                 const totalHits = settledResults.reduce((sum, r) => sum + r.hit_count, 0);
                 const settledCount = settledResults.length;
+                // 全中：該期 hit_count === 下注號碼數
+                const fullHitCount = settledResults.filter(r => r.hit_count === bet.numbers.length && bet.numbers.length > 0).length;
+                const fullHitBadge = fullHitCount > 0
+                    ? ` <span class="bet-all-hit-text">✨ 含 ${fullHitCount} 期全中！</span>`
+                    : '';
                 const summary = outOfRange
                     ? `<span class="text-rose-400">⚠️ 下注期數已超出資料範圍，無法結算（可手動刪除）</span>`
                     : settledCount === bet.periods
-                        ? `<span class="bet-hit">已結算完畢：${bet.periods} 期共中 ${totalHits} 個號碼</span>`
-                        : `<span class="bet-pending">已開 ${settledCount}/${bet.periods} 期，目前累計中 ${totalHits} 個（剩餘 ${bet.periods - settledCount} 期未開獎）</span>`;
+                        ? `<span class="bet-hit">已結算完畢：${bet.periods} 期共中 ${totalHits} 個號碼</span>${fullHitBadge}`
+                        : `<span class="bet-pending">已開 ${settledCount}/${bet.periods} 期，目前累計中 ${totalHits} 個（剩餘 ${bet.periods - settledCount} 期未開獎）</span>${fullHitBadge}`;
 
                 // 命中分佈統計：對已結算各期的 hit_count 分桶計數
                 let distHtml = '';
@@ -919,10 +924,16 @@
                     const numsHtml = bet.numbers.map(n => hitSet.has(n)
                         ? `<span class="bet-hit">${n}</span>`
                         : `<span class="bet-miss">${n}</span>`).join(' ');
-                    return `<div class="text-xs py-1 border-t border-slate-700/40">
+                    // 全中：金色背景 + 「🎯 全中」標籤
+                    const allHit = r.hit_count === bet.numbers.length && bet.numbers.length > 0;
+                    const rowExtraClass = allHit ? 'bet-all-hit' : '';
+                    const hitText = allHit
+                        ? `<span class="bet-all-hit-text">🎯 全中 ${r.hit_count}/${bet.numbers.length}！</span>`
+                        : `<span class="${r.hit_count >= 3 ? 'bet-hit' : 'text-slate-300'}">中 ${r.hit_count} 個</span>`;
+                    return `<div class="text-xs py-1 border-t border-slate-700/40 ${rowExtraClass}">
                         <div class="flex gap-2 items-center justify-between">
                             <span class="font-mono text-slate-400">${r.period}</span>
-                            <span class="${r.hit_count >= 3 ? 'bet-hit' : 'text-slate-300'}">中 ${r.hit_count} 個</span>
+                            ${hitText}
                         </div>
                         <div class="tracking-wider mt-1 break-all">${numsHtml}</div>
                     </div>`;
