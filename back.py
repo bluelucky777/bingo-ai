@@ -502,7 +502,13 @@ def _compute_strategy_pools(history_nums, n_groups=None):
 
 
 def _backtest_champion(history_nums, lookback=30):
-    """對每個池子做 lookback 期回放：分數 = 池 ∩ 下期實開 / 池大小 的平均。
+    """對每個池子做 lookback 期回放，分數用 lift（比隨機好幾倍）避免小池子偏差。
+
+    lift = (池 ∩ 實開) / (池大小 × 0.25)
+         = 實際命中 / 隨機期望命中
+
+    lift = 1.0 → 跟亂猜一樣；> 1.0 → 真的贏；< 1.0 → 比亂猜爛。
+    這樣 4 顆池命中 1 顆 (= 25%) 不會再因為分母小而虛高。
 
     跳過 xij（n_groups 在 backtest 不可得）。資料 < lookback + 10 期回 (None, None, {}).
     """
@@ -525,10 +531,12 @@ def _backtest_champion(history_nums, lookback=30):
         past_pools = _compute_strategy_pools(past, n_groups=None)
         for name, pool_set in past_pools.items():
             unique = set(pool_set)
-            if not unique:
+            pool_size = len(unique)
+            if pool_size == 0:
                 continue
-            hit_rate = len(unique & actual) / len(unique)
-            score_sums[name] += hit_rate
+            expected = pool_size * 0.25  # 隨機期望命中數（每號 20/80 = 25% 機率）
+            lift = len(unique & actual) / expected
+            score_sums[name] += lift
             score_counts[name] += 1
 
     avg_scores = {k: score_sums[k] / score_counts[k]
