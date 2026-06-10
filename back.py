@@ -573,11 +573,14 @@ def _top_cooccurrence_triple_pool(history_nums, top_n_triples=10, recent_cap=500
     return pool
 
 
-def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None):
+def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None, full_history_nums=None):
     """
     回傳 11 個推薦池各自挑 ball_count 顆球（含 3 個進階：老祖宗 / 回測冠軍 / 三人組同出）。
 
     顯示順序依數據評分（A+ → D）固定排序，老祖宗永遠第一順位。
+
+    full_history_nums: 用於回測冠軍 + 三人組 + 回測冠軍時的「冠軍當期候選池」（需要 ≥ 40 期）。
+    若未提供則 fallback 到 history_nums，但會限制這 2 池在小 limit 下無法計算。
     """
     r = rng or random
     if not history_nums:
@@ -586,17 +589,22 @@ def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None):
     weighted = compute_weighted_counts(history_nums)
     pools_dict = _compute_strategy_pools(history_nums, n_groups)
 
+    # 回測冠軍 + 三人組用「完整歷史」（不受 limit 影響），否則 10 期下永遠 < 40 觸發資料不足
+    full = full_history_nums if full_history_nums else history_nums
+
     # 回測冠軍：歷史 30 期表現最佳池的「當期」候選池
-    champion_key, champion_name_zh, _ = _backtest_champion(history_nums, lookback=30)
-    if champion_key and champion_key in pools_dict:
-        pools_dict['champion'] = pools_dict[champion_key]
+    champion_key, champion_name_zh, _ = _backtest_champion(full, lookback=30)
+    if champion_key:
+        # 冠軍當期候選池也用 full 算（保持與 backtest 一致的資料基礎）
+        full_pools_for_champion = _compute_strategy_pools(full, n_groups=None)
+        pools_dict['champion'] = full_pools_for_champion.get(champion_key, [])
         champion_label = f"老祖宗的回測冠軍：{champion_name_zh}"
     else:
         pools_dict['champion'] = []
         champion_label = "老祖宗的回測冠軍（資料不足）"
 
-    # 三人組同出：歷史最常 3 顆同開的鐵三角們
-    pools_dict['cluster3'] = _top_cooccurrence_triple_pool(history_nums, top_n_triples=10)
+    # 三人組同出：歷史最常 3 顆同開的鐵三角們（用 full）
+    pools_dict['cluster3'] = _top_cooccurrence_triple_pool(full, top_n_triples=10)
 
     pools_meta = [
         ("triangle", "本頻道的老祖宗", "高頻 ∩ 共伴 ∩ 不冷"),

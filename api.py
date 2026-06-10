@@ -142,7 +142,8 @@ def predict():
         prediction = analyze_strategy(nums_only, strategy, n_groups, ball_count)
         star_levels = analyze_star_levels(n_groups)
         strategies = get_strategy_analysis(nums_only, n_groups, counts)
-        expert = get_expert_strategies(nums_only, n_groups, expert_count)
+        # 傳 full_nums 給回測冠軍 + 三人組（這 2 池需要 ≥ 40 期，不能受 limit 限制）
+        expert = get_expert_strategies(nums_only, n_groups, expert_count, full_history_nums=full_nums)
         # bias 報告用全期統計（不受 limit 影響），讓樣本量盡量大
         bias_report = get_frequency_bias_report(full_nums)
 
