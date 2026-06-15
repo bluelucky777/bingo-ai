@@ -145,7 +145,7 @@
             </div>
 
             <!-- 🎯 套用設定按鈕（策略立即生效，其他設定要按這顆才套用）-->
-            <button onclick="applyAndFetch()" id="run-analysis-btn" class="w-full bg-yellow-500 hover:bg-yellow-400 text-slate-900 py-3 rounded-lg font-bold text-base mb-4 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+            <button onclick="applyAndFetch()" class="run-analysis-btn w-full bg-yellow-500 hover:bg-yellow-400 text-slate-900 py-3 rounded-lg font-bold text-base mb-4 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
                 🎯 套用設定並重新預測
             </button>
 
@@ -174,6 +174,9 @@
                     </script>
                 </div>
             </div>
+            <button onclick="applyAndFetch()" class="run-analysis-btn w-full mb-3 bg-yellow-500 hover:bg-yellow-400 text-slate-900 py-2.5 rounded-lg font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                🎯 套用設定並重新預測
+            </button>
             <button onclick="batchBetAllExperts()" class="w-full mb-4 bg-fuchsia-600 hover:bg-fuchsia-500 py-2.5 rounded-lg font-bold text-sm">⚡ 一鍵下注全部脆友策略（10 期）</button>
             <div id="strat-logic" class="space-y-4 text-lg">載入中...</div>
         </div>
@@ -318,11 +321,10 @@
                 b.style.cursor = loading ? 'wait' : 'pointer';
                 b.style.pointerEvents = loading ? 'none' : '';
             });
-            const runBtn = document.getElementById('run-analysis-btn');
-            if (runBtn) {
-                runBtn.disabled = loading;
-                if (loading) runBtn.innerText = '⏳ 計算中…';
-            }
+            document.querySelectorAll('.run-analysis-btn').forEach(btn => {
+                btn.disabled = loading;
+                if (loading) btn.innerText = '⏳ 計算中…';
+            });
             if (loading) {
                 document.getElementById('cur-period').innerText = '⏳ 載入中…（雲端冷啟動最長約 30 秒，請稍候）';
             }
@@ -354,6 +356,9 @@
             }
         }
 
+        // 使用者是否曾首次按 🎯 套用按鈕；未啟動前不自動載入（避免首次進站秀「計算中…」）
+        let userActivated = false;
+
         // === Firebase 監聽：只用作「期數變化通知」 ===
         function initRealtimeSync() {
             database.ref('bingo_data').on('value', (snapshot) => {
@@ -362,11 +367,14 @@
                 const latest = data.records[0].period;
                 if (latest !== lastPeriodSeen) {
                     lastPeriodSeen = latest;
-                    fetchAnalysis();
+                    // 首次進站不自動 fetch，等使用者按按鈕；啟動後新期數正常自動載入
+                    if (userActivated) fetchAnalysis();
                 }
             });
-            // 兜底：5 分鐘強制刷一次
-            setInterval(fetchAnalysis, 5 * 60 * 1000);
+            // 兜底：5 分鐘強制刷一次（同樣等啟動後才作用）
+            setInterval(() => {
+                if (userActivated) fetchAnalysis();
+            }, 5 * 60 * 1000);
         }
 
         // === 渲染：全部依後端 payload ===
@@ -613,20 +621,20 @@
         }
 
         // === Dirty 狀態：使用者改設定但還沒按「產生預測號碼」 ===
+        // 同時操作多顆 .run-analysis-btn（核心預測 + 脆友 兩個位置）
         function markDirty() {
-            const btn = document.getElementById('run-analysis-btn');
-            if (!btn) return;
-            btn.classList.add('animate-pulse', 'bg-rose-500');
-            btn.classList.remove('bg-yellow-500', 'hover:bg-yellow-400', 'hover:bg-rose-400');
-            btn.classList.add('hover:bg-rose-400');
-            btn.innerText = '⚡ 設定已變更，點此套用';
+            document.querySelectorAll('.run-analysis-btn').forEach(btn => {
+                btn.classList.add('animate-pulse', 'bg-rose-500', 'hover:bg-rose-400');
+                btn.classList.remove('bg-yellow-500', 'hover:bg-yellow-400');
+                btn.innerText = '⚡ 設定已變更，點此套用';
+            });
         }
         function clearDirty() {
-            const btn = document.getElementById('run-analysis-btn');
-            if (!btn) return;
-            btn.classList.remove('animate-pulse', 'bg-rose-500', 'hover:bg-rose-400');
-            btn.classList.add('bg-yellow-500', 'hover:bg-yellow-400');
-            btn.innerText = '🎯 重新產生預測';
+            document.querySelectorAll('.run-analysis-btn').forEach(btn => {
+                btn.classList.remove('animate-pulse', 'bg-rose-500', 'hover:bg-rose-400');
+                btn.classList.add('bg-yellow-500', 'hover:bg-yellow-400');
+                btn.innerText = '🎯 重新產生預測';
+            });
         }
 
         // === 按鈕事件 ===
@@ -663,6 +671,7 @@
             currentBallCount = pendingBallCount;
             expertBallCount = pendingExpertBallCount;
             strat = pendingStrat;
+            userActivated = true;  // 首次按後開啟自動載入（新期數通知 + 5 分鐘兜底）
             await fetchAnalysis();
             clearDirty();
         }
@@ -987,8 +996,10 @@
                     } else {
                         btn.innerText = '✓ 已是最新';
                     }
-                    // 拉新資料重新渲染
+                    // 拉新資料重新渲染（順帶啟動 userActivated）
+                    userActivated = true;
                     await fetchAnalysis();
+                    clearDirty();
                 } else {
                     alert(`同步失敗：${data.message || '未知錯誤'}`);
                 }
@@ -1007,7 +1018,8 @@
             renderBetSelected();
             renderBetHistory();
             initRealtimeSync();
-            fetchAnalysis();  // 首次主動拉一次，不等 Firebase 通知
+            // 不自動 fetch — 初始顯示「⚡ 設定已變更，點此套用」提示，使用者按按鈕才載入
+            markDirty();
         };
     </script>
 </body>
