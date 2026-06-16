@@ -351,7 +351,11 @@
         }
 
         // === 取資料：打 Flask API ===
-        async function fetchAnalysis() {
+        async function fetchAnalysis(section = 'all') {
+            // section: 'all' | 'core' | 'expert' — 控制要更新前端哪些區塊
+            //   'all'    = 全部渲染（onload / realtime / setInterval / manualSync）
+            //   'core'   = 只更新 AI 核心預測 + 機率排行 + 進階分析（不動脆友）
+            //   'expert' = 只更新脆友策略列表（不動核心區）
             // 取消前一個還沒回的請求避免 race
             if (inflightCtrl) inflightCtrl.abort();
             const myCtrl = new AbortController();
@@ -363,9 +367,7 @@
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const data = await resp.json();
                 if (data.error) throw new Error(data.error);
-                renderAll(data);
-                // 注意：clearCoreDirty / clearExpertDirty 只在各自套用按鈕後呼叫，自動載入不清 dirty
-                // 這樣使用者改了球數沒按按鈕但點了策略，dirty 提示仍在，提醒「球數變更尚未套用」
+                renderAll(data, section);
             } catch (e) {
                 if (e.name === 'AbortError') return;
                 console.error('❌ 取得分析失敗：', e);
@@ -392,24 +394,33 @@
         }
 
         // === 渲染：全部依後端 payload ===
-        function renderAll(data) {
+        function renderAll(data, section = 'all') {
+            // header 部分（期數 / 時間 / latestHistory 給結算用）— 任何 section 都要更新
             document.getElementById('cur-period').innerText = `最新期數：${data.last_period}`;
             document.getElementById('update-time').innerText = "最後更新時間：" + (data.last_update || "未知");
-            // 機率排行榜標題用 API 回傳的 current_limit（已套用的 limit），避免使用者按 pending 後 title 不一致
-            const appliedLimit = data.current_limit || currentLimit;
-            document.getElementById('top-title').innerText = `📈 近${appliedLimit}期-出現機率排行榜 (Top 10)`;
-            document.getElementById('low-title').innerText = `📉 近${appliedLimit}期-冷門號碼排行榜 (Low 10)`;
             latestHistory = data.history || [];
             lastPeriodFromApi = data.last_period;
-            renderProbabilityRank(data.prob_rank);
-            renderStrategyBacktest(data.backtest, data.recommended_bet);
-            renderPrediction(data.prediction, data.last_period);
-            renderExpertStrategies(data.expert_strategies);
-            renderNGroups(data.n_groups);
-            renderGStrats(data.strategies);
-            renderStarLevels(data.star_levels);
-            renderHistoryList(data.history);
-            // 每次資料更新都跑一次自動結算 + 重新渲染下注紀錄
+
+            // 核心區（AI 核心預測 + 機率排行 + 進階分析）— 只在 section='all' 或 'core' 渲染
+            if (section === 'all' || section === 'core') {
+                const appliedLimit = data.current_limit || currentLimit;
+                document.getElementById('top-title').innerText = `📈 近${appliedLimit}期-出現機率排行榜 (Top 10)`;
+                document.getElementById('low-title').innerText = `📉 近${appliedLimit}期-冷門號碼排行榜 (Low 10)`;
+                renderProbabilityRank(data.prob_rank);
+                renderStrategyBacktest(data.backtest, data.recommended_bet);
+                renderPrediction(data.prediction, data.last_period);
+                renderNGroups(data.n_groups);
+                renderGStrats(data.strategies);
+                renderStarLevels(data.star_levels);
+                renderHistoryList(data.history);
+            }
+
+            // 脆友區 — 只在 section='all' 或 'expert' 渲染
+            if (section === 'all' || section === 'expert') {
+                renderExpertStrategies(data.expert_strategies);
+            }
+
+            // 下注結算用 latestHistory，任何 section 都要跑（新期數開出時下注紀錄需更新）
             settleAllBets();
             renderBetHistory();
         }
@@ -731,18 +742,18 @@
             document.getElementById('btn-' + s).classList.add('ring-4', 'ring-white/50');
             markCoreDirty();
         }
-        // 核心套用：只 sync limit/ball/strat，expert_count 不動
+        // 核心套用：只 sync limit/ball/strat、只渲染核心區（不動脆友列表）
         async function applyAndFetchCore() {
             currentLimit = pendingLimit;
             currentBallCount = pendingBallCount;
             strat = pendingStrat;
-            await fetchAnalysis();
+            await fetchAnalysis('core');
             clearCoreDirty();
         }
-        // 脆友套用：只 sync expert_count
+        // 脆友套用：只 sync expert_count、只渲染脆友列表（不動核心區）
         async function applyAndFetchExpert() {
             expertBallCount = pendingExpertBallCount;
-            await fetchAnalysis();
+            await fetchAnalysis('expert');
             clearExpertDirty();
         }
 
