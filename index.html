@@ -112,7 +112,7 @@
             </div>
 
             <!-- 策略按鈕（含回測徽章） -->
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
                 <button onclick="setStrat('pure_hot')" id="btn-pure_hot" class="strat-btn relative bg-rose-600 p-3 rounded-xl font-bold text-left">
                     <div class="text-base">🌶️ 純熱門</div>
                     <div id="bt-badge-pure_hot" class="text-xs opacity-90 mt-1">回測 --</div>
@@ -128,6 +128,10 @@
                 <button onclick="setStrat('markov')" id="btn-markov" class="strat-btn relative bg-pink-600 p-3 rounded-xl font-bold text-left">
                     <div class="text-base">🔗 馬可夫</div>
                     <div id="bt-badge-markov" class="text-xs opacity-90 mt-1">回測 --</div>
+                </button>
+                <button onclick="setStrat('dual_window')" id="btn-dual_window" class="strat-btn relative bg-indigo-600 p-3 rounded-xl font-bold text-left">
+                    <div class="text-base">🌟 雙窗熱號</div>
+                    <div id="bt-badge-dual_window" class="text-xs opacity-90 mt-1">回測 --</div>
                 </button>
                 <button onclick="setStrat('random')" id="btn-random" class="strat-btn relative bg-blue-600 p-3 rounded-xl font-bold text-left">
                     <div class="text-base">🌀 AI隨便挑</div>
@@ -151,6 +155,11 @@
 
             <!-- 預測結果 -->
             <div id="pred-box" class="flex flex-wrap justify-center gap-3 mb-4 min-h-[60px]"></div>
+
+            <!-- 📊 動態下注建議（依當前球數即時計算）-->
+            <div id="bet-suggestion" class="bg-slate-900/40 border border-slate-700/50 px-3 py-2.5 rounded text-xs text-slate-400 mb-4 leading-relaxed">
+                <!-- 由 renderBetSuggestion() 動態填入 -->
+            </div>
 
             <!-- 預測資訊 + 一鍵帶入 -->
             <div class="bg-slate-900/40 p-3 rounded-lg flex flex-col md:flex-row items-center justify-between gap-2">
@@ -420,7 +429,7 @@
 
         // 把回測結果寫成策略按鈕上的徽章；找出最佳策略
         function renderStrategyBacktest(bt, recommended) {
-            const strategies = ['pure_hot', 'hot', 'consensus', 'markov'];
+            const strategies = ['pure_hot', 'hot', 'consensus', 'markov', 'dual_window'];
             // 重置：所有按鈕去除最佳光暈
             strategies.forEach(k => {
                 const el = document.getElementById('btn-' + k);
@@ -487,6 +496,40 @@
             // 下一期顯示：從 history 推算步進（多數為 10，跨日可能不同），fallback 10
             const nextPeriod = lastPeriod ? String(parseInt(lastPeriod) + getPeriodStep()) : '--';
             document.getElementById('next-period-display').innerText = nextPeriod;
+        }
+
+        // ===== 動態下注建議：依球數即時算機率提示 =====
+        // 超幾何分佈：80 球抽 20 球，使用者選 N 顆，剛好命中 K 顆的機率
+        function _hypergeom(n_picked, k_hit) {
+            const N = 80, K = 20;
+            function comb(a, b) {
+                if (b < 0 || b > a) return 0;
+                if (b === 0 || b === a) return 1;
+                let r = 1;
+                for (let i = 0; i < b; i++) r = r * (a - i) / (i + 1);
+                return r;
+            }
+            return comb(K, k_hit) * comb(N - K, n_picked - k_hit) / comb(N, n_picked);
+        }
+        function renderBetSuggestion(ballCount) {
+            const n = ballCount || pendingBallCount || currentBallCount || 6;
+            const expected = n * 20 / 80;
+            // P(>= K)
+            let p3 = 0, p4 = 0;
+            for (let k = 3; k <= Math.min(n, 20); k++) p3 += _hypergeom(n, k);
+            for (let k = 4; k <= Math.min(n, 20); k++) p4 += _hypergeom(n, k);
+            // 至少中 3+ 一次的期數需求
+            function periodsFor(target) {
+                if (p3 <= 0 || p3 >= 1) return '—';
+                return Math.ceil(Math.log(1 - target) / Math.log(1 - p3));
+            }
+            const el = document.getElementById('bet-suggestion');
+            if (!el) return;
+            el.innerHTML = `
+                <div class="font-bold text-slate-300 mb-1">📊 下注 ${n} 顆 機率提示</div>
+                <div>期望命中：<b class="text-amber-300">${expected.toFixed(2)}</b> 顆/期 · 單期中 3+ 機率 <b class="text-cyan-300">${(p3 * 100).toFixed(1)}%</b> · 中 4+ <b class="text-cyan-300">${(p4 * 100).toFixed(1)}%</b></div>
+                <div class="mt-1">💡 連續追蹤可達 <b class="text-emerald-300">50%</b> 機率至少中 3+ 一次：<b class="text-emerald-300">${periodsFor(0.5)}</b> 期 · <b class="text-emerald-300">80%</b>：<b class="text-emerald-300">${periodsFor(0.8)}</b> 期</div>
+            `;
         }
 
         // 從最近兩筆 history 推算期數步進（多數為 10，跨日 anomaly 可能 250）
@@ -673,6 +716,7 @@
             document.querySelectorAll('.count-btn').forEach(b => b.classList.remove('count-active'));
             document.getElementById('btn-count-' + c).classList.add('count-active');
             markCoreDirty();
+            renderBetSuggestion(c);  // 即時更新下注建議，不必等套用
         }
         function changeExpertBallCount(n) {
             pendingExpertBallCount = n;
@@ -732,6 +776,7 @@
             hot: '🔥 追熱門',
             consensus: '🎯 共識挑',
             markov: '🔗 馬可夫',
+            dual_window: '🌟 雙窗熱號',
             random: '🌀 AI隨便挑',
         };
 
@@ -1041,6 +1086,7 @@
             renderBetGrid();
             renderBetSelected();
             renderBetHistory();
+            renderBetSuggestion();  // 進站立刻顯示預設球數的機率提示
             initRealtimeSync();
             // 進站時自動載入一次，避免空白狀態下使用者誤以為網站壞了
             fetchAnalysis();

@@ -334,10 +334,44 @@ def _markov_pick(history_nums, ball_count, rng):
     return picks[:ball_count]
 
 
+def _dual_window_pick(history_nums, ball_count, rng):
+    """🌟 雙窗熱號：必須同時在「近 5 期」與「近 30 期」前 15 名熱號交集出現
+
+    理論：加上「持續性」過濾，避免追到單期暴衝後馬上冷掉的偽訊號。
+    交集不足 ball_count 時用「長窗熱號」補；仍不足用全號加權補。
+    """
+    # 短窗 5 期熱號
+    short_top = set(n for n, _ in plain_counts(history_nums[:5]).most_common(15))
+    # 長窗 30 期熱號（不足 30 期就用全部）
+    long_counts = plain_counts(history_nums[:30])
+    long_top = set(n for n, _ in long_counts.most_common(15))
+
+    intersect = short_top & long_top
+    weighted = compute_weighted_counts(history_nums)
+
+    # 交集內按加權頻率排序
+    picks = sorted(intersect, key=lambda n: -weighted.get(n, 0))[:ball_count]
+
+    # 不足補齊：先從長窗熱號補
+    seen = set(picks)
+    if len(picks) < ball_count:
+        for n, _ in long_counts.most_common():
+            if n not in seen:
+                picks.append(n)
+                seen.add(n)
+            if len(picks) >= ball_count:
+                break
+    # 還不足（罕見）：從全號加權補
+    if len(picks) < ball_count:
+        remain = sorted((n for n in ALL_NUMS if n not in seen), key=lambda n: -weighted.get(n, 0))
+        picks.extend(remain[:ball_count - len(picks)])
+    return picks[:ball_count]
+
+
 def analyze_strategy(history_nums, strategy, n_groups, ball_count=6, rng=None):
     """
     多策略預測 — 用加權抽樣 + 球數縮減優先級。
-    strategy: hot / balanced / luck / random / pure_hot / consensus / parity_zone / markov
+    strategy: hot / balanced / luck / random / pure_hot / consensus / parity_zone / markov / dual_window
     球數減少時依優先權保留：高機率 > 拖號 > 共伴 > 熱門
     """
     r = rng or random
@@ -359,6 +393,10 @@ def analyze_strategy(history_nums, strategy, n_groups, ball_count=6, rng=None):
 
     if strategy == "markov":
         picks = _markov_pick(history_nums, ball_count, r)
+        return [{"num": n, "count": counts.get(n, 0)} for n in picks]
+
+    if strategy == "dual_window":
+        picks = _dual_window_pick(history_nums, ball_count, r)
         return [{"num": n, "count": counts.get(n, 0)} for n in picks]
 
     composition = STRATEGY_COMPOSITION.get(strategy)

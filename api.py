@@ -91,9 +91,9 @@ def _get_or_compute_backtest(full_nums, last_update):
     if key in _BACKTEST_CACHE:
         return _BACKTEST_CACHE[key]
     result = {}
-    # 4 個策略 × 10 期 = 40 次回測（balanced/luck/parity_zone 已從 UI 移除不再 backtest，
-    # 但 balanced/luck 保留在 back.py 供 consensus 內部投票使用）
-    for s in ['hot', 'pure_hot', 'consensus', 'markov']:
+    # 5 個 UI 策略 × 10 期 = 50 次回測
+    # balanced/luck/parity_zone 已從 UI 移除但保留函式供 consensus 內部投票使用
+    for s in ['hot', 'pure_hot', 'consensus', 'markov', 'dual_window']:
         result[s] = backtest_strategy(full_nums, s, test_periods=10, lookback=50, ball_count=6)
     _BACKTEST_CACHE[key] = result
     # 簡易 LRU：只留最近 3 個 key 防止記憶體膨脹
