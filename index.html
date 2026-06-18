@@ -791,6 +791,20 @@
             random: '🌀 AI隨便挑',
         };
 
+        // 台彩 BINGO 獎金表：{ 星數: { 命中數: { base: 原獎金, bonus: 加碼獎金 } } }
+        // 表中沒有的命中數視為無獎
+        const PRIZE_TABLE = {
+            6: { 6: { base: 25000, bonus: 50000 }, 5: { base: 1000, bonus: 1200 } },
+            5: { 5: { base: 7500,  bonus: 10000 }, 4: { base: 500,  bonus: 600  } },
+            4: { 4: { base: 1000,  bonus: 2000  }, 3: { base: 100,  bonus: 150  } },
+            3: { 3: { base: 500,   bonus: 1000  } },
+            2: { 2: { base: 75,    bonus: 150   } },
+            1: { 1: { base: 50,    bonus: 75    } },
+        };
+        function getPrize(stars, hitCount) {
+            return (PRIZE_TABLE[stars] && PRIZE_TABLE[stars][hitCount]) || null;
+        }
+
         function renderBetGrid() {
             const grid = document.getElementById('bet-number-grid');
             const html = [];
@@ -991,17 +1005,33 @@
                         ? `<span class="bet-hit">已結算完畢：${bet.periods} 期共中 ${totalHits} 個號碼</span>${fullHitBadge}`
                         : `<span class="bet-pending">已開 ${settledCount}/${bet.periods} 期，目前累計中 ${totalHits} 個（剩餘 ${bet.periods - settledCount} 期未開獎）</span>${fullHitBadge}`;
 
-                // 命中分佈統計：對已結算各期的 hit_count 分桶計數
+                // 命中分佈統計 + 對應獎金
                 let distHtml = '';
+                let totalPrizeBase = 0;
+                let totalPrizeBonus = 0;
                 if (settledCount > 0) {
                     const dist = {};
                     settledResults.forEach(r => {
                         dist[r.hit_count] = (dist[r.hit_count] || 0) + 1;
                     });
-                    const sortedKeys = Object.keys(dist).map(Number).sort((a, b) => a - b);
-                    distHtml = `<div class="text-xs text-slate-400 mb-2 flex flex-wrap gap-x-3 gap-y-1">${
-                        sortedKeys.map(k => `<span>中 ${k} 個 <span class="text-slate-200 font-bold">${dist[k]}</span> 筆</span>`).join('')
+                    const stars = bet.numbers.length;
+                    const sortedKeys = Object.keys(dist).map(Number).sort((a, b) => b - a);  // 大到小，把有獎放前面
+                    distHtml = `<div class="text-xs text-slate-400 mb-2 space-y-1">${
+                        sortedKeys.map(k => {
+                            const count = dist[k];
+                            const prize = getPrize(stars, k);
+                            if (prize) {
+                                totalPrizeBase += prize.base * count;
+                                totalPrizeBonus += prize.bonus * count;
+                                return `<div>中 ${k} 個 <span class="text-slate-200 font-bold">${count}</span> 筆 <span class="text-amber-300">→ 單注 $${prize.base.toLocaleString()} / 加碼 $${prize.bonus.toLocaleString()}</span> <span class="text-emerald-300">(小計 $${(prize.base * count).toLocaleString()} / $${(prize.bonus * count).toLocaleString()})</span></div>`;
+                            }
+                            return `<div>中 ${k} 個 <span class="text-slate-200 font-bold">${count}</span> 筆 <span class="text-slate-600">(無獎)</span></div>`;
+                        }).join('')
                     }</div>`;
+                    // 總額：放在分佈最上方
+                    if (totalPrizeBase > 0) {
+                        distHtml = `<div class="text-sm font-bold text-amber-300 mb-1">💰 累計獎金：$${totalPrizeBase.toLocaleString()} 元（加碼後 $${totalPrizeBonus.toLocaleString()} 元）</div>` + distHtml;
+                    }
                 }
 
                 const rowsHtml = bet.results.map((r, idx) => {
