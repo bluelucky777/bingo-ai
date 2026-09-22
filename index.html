@@ -54,10 +54,10 @@
                 </button>
                 <!-- 台彩活動公告 -->
                 <div class="mt-3 bg-rose-900/20 border-l-4 border-rose-500 p-3 rounded">
-                    <p class="text-rose-400 font-bold text-sm">🧧💰🧧台彩加碼網址🧧💰🧧</p>
-                    <p class="text-slate-200 text-sm mt-2">自 115 年 6 月 19 日（五）至 115 年 6 月 21 日（日）止，共 3 天 <span class="text-amber-300 font-bold">（2.3.4.6 星）</span></p>
-                    <a href="https://www.taiwanlottery.com/activity/bonus/info/87394ce5484d44fbb2b0ff7f71a00132" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline text-xs mt-2 inline-block break-all">
-                        💰 https://www.taiwanlottery.com/activity/bonus/info/87394ce5484d44fbb2b0ff7f71a00132 💰
+                    <p class="text-rose-400 font-bold text-sm">🧧💰🧧台彩加碼網址🧧💰🧧 </p>
+                    <p class="text-slate-200 text-sm mt-2">10/8(三) 10/9(四) <span class="text-amber-300 font-bold">（2.3.4.6 星）</span></p>
+                    <a href="https://www.taiwanlottery.com/activity/bonus/online/info/bfb471bec8594821ba397521fba15a61" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline text-xs mt-2 inline-block break-all">
+                        💰 https://www.taiwanlottery.com/activity/bonus/online/info/bfb471bec8594821ba397521fba15a61 💰
                     </a>
                 </div>
             </div>
@@ -71,9 +71,11 @@
         </header>
 
         <!-- 主分頁：分析預測 / 下注紀錄 -->
-        <div class="flex gap-2 mb-6 bg-slate-800 p-1 rounded-xl border border-slate-700">
-            <button onclick="switchPageTab('analysis')" id="page-tab-analysis" class="page-tab flex-1 px-4 py-2.5 rounded-lg font-bold text-sm transition-all bg-yellow-500 text-slate-900">📊 分析預測</button>
-            <button onclick="switchPageTab('bets')" id="page-tab-bets" class="page-tab flex-1 px-4 py-2.5 rounded-lg font-bold text-sm transition-all bg-slate-700 text-slate-300 hover:bg-slate-600">📋 下注紀錄</button>
+        <!-- 主分頁按鈕 -->
+        <div class="flex gap-2 mb-6 bg-[#F2ECE1] p-1.5 rounded-xl border border-[#D1C8B6] shadow-sm">
+            <button onclick="switchPageTab('analysis')" id="page-tab-analysis" class="page-tab flex-1 px-4 py-2.5 rounded-lg font-bold text-sm bg-[#AF8D3B] text-white shadow-sm">📊 分析預測</button>
+            <button onclick="switchPageTab('winrate')" id="page-tab-winrate" class="page-tab flex-1 px-4 py-2.5 rounded-lg font-bold text-sm bg-transparent text-[#595959] hover:bg-[#E4DDCF]">📈 近期勝率</button>
+            <button onclick="switchPageTab('bets')" id="page-tab-bets" class="page-tab flex-1 px-4 py-2.5 rounded-lg font-bold text-sm bg-transparent text-[#595959] hover:bg-[#E4DDCF]">📋 下注紀錄</button>
         </div>
 
         <!-- ========== Tab 1：分析預測 + 下注區 ========== -->
@@ -121,10 +123,6 @@
                     <div class="text-base">🔥 追熱門</div>
                     <div id="bt-badge-hot" class="text-xs opacity-90 mt-1">回測 --</div>
                 </button>
-                <button onclick="setStrat('consensus')" id="btn-consensus" class="strat-btn relative bg-yellow-600 p-3 rounded-xl font-bold text-left">
-                    <div class="text-base">🎯 共識挑</div>
-                    <div id="bt-badge-consensus" class="text-xs opacity-90 mt-1">回測 --</div>
-                </button>
                 <button onclick="setStrat('markov')" id="btn-markov" class="strat-btn relative bg-pink-600 p-3 rounded-xl font-bold text-left">
                     <div class="text-base">🔗 馬可夫</div>
                     <div id="bt-badge-markov" class="text-xs opacity-90 mt-1">回測 --</div>
@@ -134,7 +132,7 @@
                     <div id="bt-badge-dual_window" class="text-xs opacity-90 mt-1">回測 --</div>
                 </button>
                 <button onclick="setStrat('random')" id="btn-random" class="strat-btn relative bg-blue-600 p-3 rounded-xl font-bold text-left">
-                    <div class="text-base">🌀 AI隨便挑</div>
+                    <div class="text-base">🌀 AI財神爺</div>
                     <div class="text-xs opacity-70 mt-1">純隨機</div>
                 </button>
             </div>
@@ -270,6 +268,54 @@
         <!-- /主版面 -->
         </div>
         <!-- /pane-analysis -->
+        
+        <!-- ========== Tab 3：近期勝率 ========== -->
+<div id="pane-winrate" class="page-pane hidden">
+    <!-- AI 核心預測區塊 -->
+    <div class="bg-[#F2ECE1] p-6 rounded-2xl border-l-8 border-[#AF8D3B] shadow-[0_4px_20px_rgb(0,0,0,0.04)] mb-6">
+        <h3 class="text-lg font-bold text-[#AF8D3B] mb-2">🔮 AI 核心預測 - 近期 4 星追蹤</h3>
+        <p class="text-xs text-[#595959] mb-5">系統於歷史近 10 期分別產生 4 顆號碼，並對每組號碼「連續對獎未來的 10 期」。</p>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[600px] bg-white rounded-lg overflow-hidden border border-[#D1C8B6]">
+                <thead>
+                    <tr class="bg-[#E4DDCF] text-[#2C2C2C] text-sm">
+                        <th class="p-3 font-bold w-1/3">玩法名稱</th>
+                        <th class="p-3 font-bold text-center">4中2 次數</th>
+                        <th class="p-3 font-bold text-center">4中3 次數</th>
+                        <th class="p-3 font-bold text-center">4中4 次數</th>
+                        <th class="p-3 font-bold text-center">總中獎次數</th>
+                    </tr>
+                </thead>
+                <tbody id="winrate-core-tbody">
+                    <tr><td colspan="5" class="p-4 text-center text-[#595959]">載入中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 脆友攻略推薦區塊 -->
+    <div class="bg-[#F2ECE1] p-6 rounded-2xl border-l-8 border-[#526E53] shadow-[0_4px_20px_rgb(0,0,0,0.04)]">
+        <h3 class="text-lg font-bold text-[#526E53] mb-4">💡 脆友攻略推薦 - 近期 4 星追蹤</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[600px] bg-white rounded-lg overflow-hidden border border-[#D1C8B6]">
+                <thead>
+                    <tr class="bg-[#E4DDCF] text-[#2C2C2C] text-sm">
+                        <th class="p-3 font-bold w-1/3">攻略名稱</th>
+                        <th class="p-3 font-bold text-center">4中2 次數</th>
+                        <th class="p-3 font-bold text-center">4中3 次數</th>
+                        <th class="p-3 font-bold text-center">4中4 次數</th>
+                        <th class="p-3 font-bold text-center">總中獎次數</th>
+                    </tr>
+                </thead>
+                <tbody id="winrate-expert-tbody">
+                    <tr><td colspan="5" class="p-4 text-center text-[#595959]">載入中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
 
         <!-- ========== Tab 2：下注紀錄（全寬） ========== -->
         <div id="pane-bets" class="page-pane hidden">
@@ -292,7 +338,7 @@
         // === 設定區 ===
         // 本機開發：'http://localhost:5001'
         // 部署後改為 Render URL，例：'https://three69-bingo-ai.onrender.com'
-        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        const API_BASE = (window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
             ? 'http://localhost:5001'
             : 'https://three69-bingo-ai.onrender.com';  // ← 部署後改成你的 Render URL
 
@@ -413,6 +459,107 @@
                 renderGStrats(data.strategies);
                 renderStarLevels(data.star_levels);
                 renderHistoryList(data.history);
+
+            // 渲染勝率表格 (共用函數)
+            function renderWinRateTable(tbodyId, dataList) {
+                const tbody = document.getElementById(tbodyId);
+                if (!dataList || !dataList.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-[#595959]">資料不足，無法計算</td></tr>';
+                    return;
+                }
+
+                // 🌟 1. 找出各項目的前三名數值 (排除 0 次)
+                const metrics = ['hit_2', 'hit_3', 'hit_4', 'total_wins'];
+                const top3 = {};
+                metrics.forEach(m => {
+                    // 取出所有不重複的數值，並由大到小排序
+                    const uniqueVals = [...new Set(dataList.map(d => d[m]))]
+                        .filter(v => v > 0)
+                        .sort((a, b) => b - a);
+                    top3[m] = {
+                        1: uniqueVals[0], // 第一高分
+                        2: uniqueVals[1], // 第二高分
+                        3: uniqueVals[2]  // 第三高分
+                    };
+                });
+
+                // 🌟 2. 給予稱號與顏色的專屬函數
+                function getRankTag(metric, val) {
+                    if (!val || val === 0) return '';
+                    if (val === top3[metric][1]) return '<span class="text-[12px] text-[#C43A3A] font-bold ml-1">(🏆冠軍)</span>';
+                    if (val === top3[metric][2]) return '<span class="text-[12px] text-[#7A8B99] font-bold ml-1">(🥈亞軍)</span>';
+                    if (val === top3[metric][3]) return '<span class="text-[12px] text-[#B08546] font-bold ml-1">(🥉季軍)</span>';
+                    return ''; // 沒上榜就不顯示
+                }
+
+                // 🌟 3. 渲染表格 (並呼叫稱號函數)
+                tbody.innerHTML = dataList.map(r => `
+                    <tr class="border-b border-[#D1C8B6] hover:bg-[#F7F5F0] transition-colors">
+                        <td class="p-4">
+                            <div class="font-bold text-[#2C2C2C] text-base">${STRAT_LABEL[r.strategy] || r.strategy}</div>
+                        </td>
+                        <td class="p-3 text-center text-[#595959]">${r.hit_2}${getRankTag('hit_2', r.hit_2)}</td>
+                        <td class="p-3 text-center text-[#526E53] font-bold">${r.hit_3}${getRankTag('hit_3', r.hit_3)}</td>
+                        <td class="p-3 text-center text-[#833B3B] font-bold">${r.hit_4}${getRankTag('hit_4', r.hit_4)}</td>
+                        <td class="p-3 text-center font-bold text-[#3A5672]">${r.total_wins}${getRankTag('total_wins', r.total_wins)}</td>
+                    </tr>
+                    <tr class="bg-[#F7F5F0]">
+                        <td colspan="5" class="p-0 border-b border-[#D1C8B6]">
+                            <details class="w-full text-sm group outline-none">
+                                <summary class="cursor-pointer font-medium text-[#5C7A99] p-3 hover:bg-[#E4DDCF] transition-colors outline-none">
+                                    <span class="group-open:hidden">▶ 展開 ${STRAT_LABEL[r.strategy] || r.strategy} 的 10 組對獎細節</span>
+                                    <span class="hidden group-open:inline">▼ 收合對獎細節</span>
+                                </summary>
+                                <div class="p-4 pt-0 space-y-4">
+                                    ${r.details.map(d => `
+                                        <div class="bg-white p-4 rounded-xl border border-[#D1C8B6] shadow-sm">
+                                            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 pb-3 border-b border-[#E5E0D8] gap-2">
+                                                <div class="font-bold text-[#833B3B] text-[15px]">【第 ${d.group_id} 組】下注 <span class="text-[#595959] text-[14px] ml-1">在 <b class="text-[#5C7A99] font-mono">${d.base_period}</b> 期下注</span></div>
+                                                <div class="text-xs text-[#595959] bg-[#F7F5F0] px-3 py-1.5 rounded-lg border border-[#D1C8B6] sm:text-right">
+                                                    對獎狀態：已開 <b class="text-[#2C2C2C]">${d.track_results.filter(x => x.status === 'drawn').length}</b> 期 / 待開 <b class="text-[#AF8D3B]">${d.track_results.filter(x => x.status === 'pending').length}</b> 期
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="flex items-center gap-3 mb-3">
+                                                <div class="text-[#2C2C2C] font-mono tracking-widest text-[15px] font-bold bg-[#E4DDCF] px-3 py-1.5 rounded-lg border border-[#D1C8B6]">
+                                                    號碼：${d.predicted_nums.join(' ')}
+                                                </div>
+                                                <div class="text-xs text-[#595959] flex gap-3">
+                                                    <span>4中2 <b class="text-[#595959] text-[13px]">${d.sub_hit_2}</b> 次</span>
+                                                    <span>4中3 <b class="text-[#526E53] text-[13px]">${d.sub_hit_3}</b> 次</span>
+                                                    <span>4中4 <b class="text-[#833B3B] text-[13px]">${d.sub_hit_4}</b> 次</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <details class="text-xs text-[#7A7A7A] group/sub outline-none">
+                                                <summary class="cursor-pointer hover:text-[#5C7A99] outline-none font-medium">
+                                                    <span class="group-open/sub:hidden">查看 10 期詳細開獎進度 ▼</span>
+                                                    <span class="hidden group-open/sub:inline">隱藏開獎進度 ▲</span>
+                                                </summary>
+                                                <div class="mt-3 flex flex-wrap gap-2">
+                                                    ${d.track_results.map(tr => {
+                                                        if (tr.status === 'drawn') {
+                                                            return `<span class="bg-[#F7F5F0] px-2 py-1.5 rounded-md border border-[#E5E0D8] shadow-sm ${tr.hits >= 2 ? 'text-[#833B3B] font-bold border-[#D08C8C] bg-[#F9F4F4]' : ''}">${tr.period} (中${tr.hits})</span>`;
+                                                        } else {
+                                                            return `<span class="bg-[#E4DDCF] px-2 py-1.5 rounded-md border border-[#D1C8B6] text-[#7A7A7A] italic shadow-sm flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-[#AF8D3B] animate-pulse"></span>${tr.period} (待開)</span>`;
+                                                        }
+                                                    }).join('')}
+                                                </div>
+                                            </details>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </details>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            // 分別呼叫兩次函數，渲染上下的 AI 核心與脆友表格
+            if (data.tracking_win_rate) {
+                renderWinRateTable('winrate-core-tbody', data.tracking_win_rate.core);
+                renderWinRateTable('winrate-expert-tbody', data.tracking_win_rate.expert);
+            }
             }
 
             // 脆友區 — 只在 section='all' 或 'expert' 渲染
@@ -440,7 +587,7 @@
 
         // 把回測結果寫成策略按鈕上的徽章；找出最佳策略
         function renderStrategyBacktest(bt, recommended) {
-            const strategies = ['pure_hot', 'hot', 'consensus', 'markov', 'dual_window'];
+            const strategies = ['pure_hot', 'hot', 'markov', 'dual_window'];
             // 重置：所有按鈕去除最佳光暈
             strategies.forEach(k => {
                 const el = document.getElementById('btn-' + k);
@@ -770,12 +917,12 @@
             document.querySelectorAll('.page-pane').forEach(p => p.classList.add('hidden'));
             document.getElementById('pane-' + name).classList.remove('hidden');
             document.querySelectorAll('.page-tab').forEach(b => {
-                b.classList.remove('bg-yellow-500', 'text-slate-900');
-                b.classList.add('bg-slate-700', 'text-slate-300', 'hover:bg-slate-600');
+                b.classList.remove('bg-[#AF8D3B]', 'text-white', 'shadow-sm');
+                b.classList.add('bg-transparent', 'text-[#595959]', 'hover:bg-[#E4DDCF]');
             });
             const activeBtn = document.getElementById('page-tab-' + name);
-            activeBtn.classList.remove('bg-slate-700', 'text-slate-300', 'hover:bg-slate-600');
-            activeBtn.classList.add('bg-yellow-500', 'text-slate-900');
+            activeBtn.classList.remove('bg-transparent', 'text-[#595959]', 'hover:bg-[#E4DDCF]');
+            activeBtn.classList.add('bg-[#AF8D3B]', 'text-white', 'shadow-sm');
         }
 
         // ============================================================
@@ -785,10 +932,9 @@
         const STRAT_LABEL = {
             pure_hot: '🌶️ 純熱門',
             hot: '🔥 追熱門',
-            consensus: '🎯 共識挑',
             markov: '🔗 馬可夫',
             dual_window: '🌟 雙窗熱號',
-            random: '🌀 AI隨便挑',
+            random: '🌀 AI財神爺',
         };
 
         function renderBetGrid() {
