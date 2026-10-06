@@ -474,24 +474,46 @@ def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None, full_h
         result.append({"key": key, "name": name, "desc": desc, "picks": picks})
     return result
 
+# 🌟 效能大躍進：為近期勝率建立專屬記憶體
+_WIN_RATE_CACHE = {}
+
 def calculate_tracking_win_rate(full_history):
+    """
+    計算近期勝率 (4球追蹤10期) - 雙區塊滾動推進版：
+    同時計算「AI 核心」與「脆友推薦」的所有策略，並返回字典格式區分兩者。
+    """
     if len(full_history) < 20:
         return {"core": [], "expert": []}
+
+    # 🌟 攔截點：如果「最新期數」沒變，直接回傳記憶體裡的結果，省下 15 秒！
+    latest_period = full_history[0]['period']
+    if latest_period in _WIN_RATE_CACHE:
+        return _WIN_RATE_CACHE[latest_period]
+
+    import collections
+    import random
     rng = random.Random(369)
+    
+    # 準備存放兩區結果的字典
     core_strats = ['pure_hot', 'hot', 'markov', 'dual_window']
     core_res = {s: {"strategy": s, "hit_2": 0, "hit_3": 0, "hit_4": 0, "total_wins": 0, "details": []} for s in core_strats}
     expert_res = {}
 
     for i in range(10):
         target_idx = 9 - i  
-        if target_idx >= len(full_history): continue
+        if target_idx >= len(full_history):
+            continue
+        
         history_slice = full_history[target_idx:]
-        if len(history_slice) < 5: continue
+        if len(history_slice) < 5:
+            continue
+        
         base_period = history_slice[0]['period']
         history_for_pred = [item['numbers'] for item in history_slice]
         wrapped = [{"numbers": nums} for nums in history_for_pred]
         n_groups = get_n_groups(wrapped)
         
+        # 預先計算未來的 10 期開獎狀態
         track_info_list = []
         last_known = int(base_period)
         for step in range(1, 11):
@@ -504,16 +526,19 @@ def calculate_tracking_win_rate(full_history):
                 last_known += 1
                 track_info_list.append({"period": str(last_known), "drawn": set(), "status": "pending"})
                 
+        # 共通的對獎與紀錄寫入函數
         def _evaluate_and_record(picks, target_dict, key):
             pred_set = set(picks)
             h2 = h3 = h4 = 0
             t_results = []
+            
             for t in track_info_list:
                 hits = len(pred_set & t['drawn']) if t['status'] == 'drawn' else 0
                 if hits == 2: h2 += 1
                 elif hits == 3: h3 += 1
                 elif hits == 4: h4 += 1
                 t_results.append({"period": t['period'], "hits": hits, "status": t['status']})
+            
             target_dict[key]["hit_2"] += h2
             target_dict[key]["hit_3"] += h3
             target_dict[key]["hit_4"] += h4
@@ -522,14 +547,18 @@ def calculate_tracking_win_rate(full_history):
                 "group_id": i + 1,
                 "base_period": base_period,
                 "predicted_nums": sorted(picks),
-                "sub_hit_2": h2, "sub_hit_3": h3, "sub_hit_4": h4,
+                "sub_hit_2": h2,
+                "sub_hit_3": h3,
+                "sub_hit_4": h4,
                 "track_results": t_results
             })
 
+        # 1. 運算 AI 核心預測
         for s in core_strats:
             pred = analyze_strategy(history_for_pred, s, n_groups, ball_count=4, rng=rng)
             _evaluate_and_record([p['num'] for p in pred], core_res, s)
             
+        # 2. 運算脆友攻略推薦
         experts = get_expert_strategies(history_for_pred, n_groups, ball_count=4, rng=rng, full_history_nums=history_for_pred)
         for exp in experts:
             ekey = exp['key']
@@ -537,7 +566,16 @@ def calculate_tracking_win_rate(full_history):
                 expert_res[ekey] = {"strategy": exp['name'], "hit_2": 0, "hit_3": 0, "hit_4": 0, "total_wins": 0, "details": []}
             _evaluate_and_record(exp['picks'][:4], expert_res, ekey)
 
-    return {"core": list(core_res.values()), "expert": list(expert_res.values())}
+    final_result = {
+        "core": list(core_res.values()),
+        "expert": list(expert_res.values())
+    }
+
+    # 🌟 將算好的結果存入記憶體，並清除舊資料避免佔用空間
+    _WIN_RATE_CACHE.clear()
+    _WIN_RATE_CACHE[latest_period] = final_result
+
+    return final_result
 
 def get_frequency_bias_report(history_nums, z_threshold=1.96):
     if not history_nums:
