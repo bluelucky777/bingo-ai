@@ -146,7 +146,7 @@
             <div class="flex flex-wrap justify-center gap-2 mb-4">
                 <script>
                     for(let i=1; i<=6; i++) {
-                        document.write(`<button onclick="changeBallCount(${i})" id="btn-count-${i}" class="count-btn bg-slate-700 px-4 py-2 rounded-lg font-bold border ${i===6?'count-active':''}">${i}球</button>`);
+                        document.write(`<button onclick="changeBallCount(${i})" id="btn-count-${i}" class="count-btn bg-slate-700 px-4 py-2 rounded-lg font-bold border ${i===4?'count-active':''}">${i}球</button>`);
                     }
                 </script>
             </div>
@@ -181,7 +181,7 @@
                 <div class="flex gap-1 bg-slate-900/50 p-1 rounded-lg">
                     <script>
                         for(let i=1; i<=6; i++) {
-                            document.write(`<button onclick="changeExpertBallCount(${i})" id="eb-${i}" class="eb-btn px-3 py-1 rounded text-xs font-bold border border-transparent ${i===3?'expert-count-active':''}">${i}球</button>`);
+                            document.write(`<button onclick="changeExpertBallCount(${i})" id="eb-${i}" class="eb-btn px-3 py-1 rounded text-xs font-bold border border-transparent ${i===4?'expert-count-active':''}">${i}球</button>`);
                         }
                     </script>
                 </div>
@@ -362,9 +362,9 @@
 
         // === 狀態 ===
         // 已套用設定（給 API 用）：策略立即套用、其他設定需按按鈕才套用
-        let currentLimit = 10, strat = 'hot', currentBallCount = 6, expertBallCount = 3;
+        let currentLimit = 10, strat = 'hot', currentBallCount = 4, expertBallCount = 4;
         // 使用者選擇中設定（pending，等按鈕才會 sync 進 current）
-        let pendingLimit = 10, pendingBallCount = 6, pendingExpertBallCount = 3;
+        let pendingLimit = 10, pendingBallCount = 4, pendingExpertBallCount = 4;
         let lastPeriodSeen = null;
         let inflightCtrl = null;
 
@@ -869,11 +869,13 @@
         // === 按鈕事件 ===
         // 核心區設定（limit/ball/strat）→ markCoreDirty；脆友區（expert_count）→ markExpertDirty
         function changeLimit(l) {
-            pendingLimit = l;
-            document.querySelectorAll('.limit-btn').forEach(b => b.classList.remove('limit-active'));
-            document.getElementById(`btn-limit-${l}`).classList.add('limit-active');
-            markCoreDirty();
-        }
+        pendingLimit = l;
+        document.querySelectorAll('.limit-btn').forEach(b => b.classList.remove('limit-active'));
+        document.getElementById(`btn-limit-${l}`).classList.add('limit-active');
+        
+        // 🌟 刪除原本的 markCoreDirty()，改成直接觸發自動更新！
+        applyAndFetchCore(); 
+}
         function changeBallCount(c) {
             pendingBallCount = c;
             document.querySelectorAll('.count-btn').forEach(b => b.classList.remove('count-active'));
