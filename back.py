@@ -69,7 +69,10 @@ def weighted_pick(pool_with_weights, k, exclude, rng=None):
 
 
 # ---------- N1~N7 號碼屬性 ----------
-def get_n_groups(full_history_data):
+def get_n_groups(full_history_data, rng=None):
+    # 🌟 接收專屬亂數種子，確保分組抽取時不飄移
+    r = rng or random
+    
     history_nums = [item['numbers'] for item in full_history_data]
     if not history_nums:
         return {f"n{i}": [] for i in range(1, 8)}
@@ -104,7 +107,8 @@ def get_n_groups(full_history_data):
 
     def limit_10(num_list):
         if len(num_list) > 10:
-            return random.sample(num_list, 10)
+            # 🌟 使用傳入的專屬亂數 r 來抽樣
+            return r.sample(num_list, 10)
         return num_list
 
     return {
@@ -478,29 +482,23 @@ def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None, full_h
 _WIN_RATE_CACHE = {}
 
 def calculate_tracking_win_rate(full_history):
-    """
-    計算近期勝率 (4球追蹤10期) - 雙區塊滾動推進版：
-    同時計算「AI 核心」與「脆友推薦」的所有策略，並返回字典格式區分兩者。
-    """
-    if len(full_history) < 20:
+    if len(full_history) < 25:  # 保險起見，把資料長度要求稍微拉高一點點
         return {"core": [], "expert": []}
 
-    # 🌟 攔截點：如果「最新期數」沒變，直接回傳記憶體裡的結果，省下 15 秒！
     latest_period = full_history[0]['period']
     if latest_period in _WIN_RATE_CACHE:
         return _WIN_RATE_CACHE[latest_period]
 
     import collections
     import random
-    rng = random.Random(369)
     
-    # 準備存放兩區結果的字典
     core_strats = ['pure_hot', 'hot', 'markov', 'dual_window']
     core_res = {s: {"strategy": s, "hit_2": 0, "hit_3": 0, "hit_4": 0, "total_wins": 0, "details": []} for s in core_strats}
     expert_res = {}
 
-    for i in range(10):
-        target_idx = 9 - i  
+    # 🌟 核心修改：變成 11 組，並從 index 10 開始算
+    for i in range(11):
+        target_idx = 10 - i  
         if target_idx >= len(full_history):
             continue
         
@@ -509,11 +507,16 @@ def calculate_tracking_win_rate(full_history):
             continue
         
         base_period = history_slice[0]['period']
+        
+        # 綁定期數當作專屬密碼，鎖死歷史亂數
+        local_rng = random.Random(f"369_{base_period}")
+
         history_for_pred = [item['numbers'] for item in history_slice]
         wrapped = [{"numbers": nums} for nums in history_for_pred]
-        n_groups = get_n_groups(wrapped)
         
-        # 預先計算未來的 10 期開獎狀態
+        # 🌟 把專屬密碼 (local_rng) 傳遞給所有會用到亂數的函數
+        n_groups = get_n_groups(wrapped, rng=local_rng)
+        
         track_info_list = []
         last_known = int(base_period)
         for step in range(1, 11):
@@ -526,7 +529,6 @@ def calculate_tracking_win_rate(full_history):
                 last_known += 1
                 track_info_list.append({"period": str(last_known), "drawn": set(), "status": "pending"})
                 
-        # 共通的對獎與紀錄寫入函數
         def _evaluate_and_record(picks, target_dict, key):
             pred_set = set(picks)
             h2 = h3 = h4 = 0
@@ -553,13 +555,11 @@ def calculate_tracking_win_rate(full_history):
                 "track_results": t_results
             })
 
-        # 1. 運算 AI 核心預測
         for s in core_strats:
-            pred = analyze_strategy(history_for_pred, s, n_groups, ball_count=4, rng=rng)
+            pred = analyze_strategy(history_for_pred, s, n_groups, ball_count=4, rng=local_rng)
             _evaluate_and_record([p['num'] for p in pred], core_res, s)
             
-        # 2. 運算脆友攻略推薦
-        experts = get_expert_strategies(history_for_pred, n_groups, ball_count=4, rng=rng, full_history_nums=history_for_pred)
+        experts = get_expert_strategies(history_for_pred, n_groups, ball_count=4, rng=local_rng, full_history_nums=history_for_pred)
         for exp in experts:
             ekey = exp['key']
             if ekey not in expert_res:
@@ -571,7 +571,6 @@ def calculate_tracking_win_rate(full_history):
         "expert": list(expert_res.values())
     }
 
-    # 🌟 將算好的結果存入記憶體，並清除舊資料避免佔用空間
     _WIN_RATE_CACHE.clear()
     _WIN_RATE_CACHE[latest_period] = final_result
 
