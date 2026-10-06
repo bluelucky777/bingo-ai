@@ -496,16 +496,14 @@ def calculate_tracking_win_rate(full_history):
     core_res = {s: {"strategy": s, "hit_2": 0, "hit_3": 0, "hit_4": 0, "total_wins": 0, "details": []} for s in core_strats}
     expert_res = {}
 
-    # 🌟 核心修改：變成 11 組，並從 index 10 開始算
+    # 🌟 顛倒順序：直接用 i，讓 i=0 (最新期數) 成為第 1 組
     for i in range(11):
-        target_idx = 10 - i  
+        target_idx = i  
         if target_idx >= len(full_history):
             continue
         
-        # 🌟 效能大絕招：原本是 full_history[target_idx:]，會一路吃到幾百期
-        # 現在我們加上限制，最多只取 60 期，砍掉冗餘運算！
+        # 限制只抓 60 期歷史，提升運算速度
         history_slice = full_history[target_idx : target_idx + 60]
-        
         if len(history_slice) < 5:
             continue
         
