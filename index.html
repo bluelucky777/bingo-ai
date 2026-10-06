@@ -519,7 +519,7 @@
                                     ${r.details.map(d => `
                                         <div class="bg-white p-4 rounded-xl border border-[#D1C8B6] shadow-sm">
                                             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 pb-3 border-b border-[#E5E0D8] gap-2">
-                                                <div class="font-bold text-[#833B3B] text-[15px]">【第 ${d.group_id} 組】下注 <span class="text-[#595959] text-[14px] ml-1">在 <b class="text-[#5C7A99] font-mono">${d.base_period}</b> 期下注</span></div>
+                                                <div class="font-bold text-[#833B3B] text-[15px]">【${d.group_id === 1 ? '最新1期' : '第 ' + d.group_id + ' 組'}】下注 <span class="text-[#595959] text-[14px] ml-1">在 <b class="text-[#5C7A99] font-mono">${d.base_period}</b> 期下注</span></div>
                                                 <div class="text-xs text-[#595959] bg-[#F7F5F0] px-3 py-1.5 rounded-lg border border-[#D1C8B6] sm:text-right">
                                                     對獎狀態：已開 <b class="text-[#2C2C2C]">${d.track_results.filter(x => x.status === 'drawn').length}</b> 期 / 待開 <b class="text-[#AF8D3B]">${d.track_results.filter(x => x.status === 'pending').length}</b> 期
                                                 </div>
