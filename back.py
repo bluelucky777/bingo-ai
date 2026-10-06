@@ -502,7 +502,10 @@ def calculate_tracking_win_rate(full_history):
         if target_idx >= len(full_history):
             continue
         
-        history_slice = full_history[target_idx:]
+        # 🌟 效能大絕招：原本是 full_history[target_idx:]，會一路吃到幾百期
+        # 現在我們加上限制，最多只取 60 期，砍掉冗餘運算！
+        history_slice = full_history[target_idx : target_idx + 60]
+        
         if len(history_slice) < 5:
             continue
         
