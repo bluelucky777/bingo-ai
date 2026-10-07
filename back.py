@@ -502,8 +502,8 @@ def calculate_tracking_win_rate(full_history):
             continue
         
         # 🌟 你的神級拆分法：把核心和脆友的歷史資料分開！
-        # 1. 核心 AI 專用：給 120 期 (讓馬可夫跟雙窗熱號吃飽，恢復 100% 準度)
-        history_slice_core = full_history[target_idx : target_idx + 120]
+        # 1. 核心 AI 專用：給 60 期 (讓馬可夫跟雙窗熱號吃飽，恢復 100% 準度)
+        history_slice_core = full_history[target_idx : target_idx + 60]
         # 2. 脆友回測專用：只給 60 期 (封印脆友的多重迴圈，保持極速不卡頓)
         history_slice_expert = full_history[target_idx : target_idx + 60]
         
