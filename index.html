@@ -466,99 +466,109 @@
                 renderHistoryList(data.history);
 
             // 渲染勝率表格 (共用函數)
-            function renderWinRateTable(tbodyId, dataList) {
-                const tbody = document.getElementById(tbodyId);
-                if (!dataList || !dataList.length) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-[#595959]">資料不足，無法計算</td></tr>';
-                    return;
-                }
+            function renderWinRateTable(data, containerId) {
+    let container = document.getElementById(containerId);
+    if (!data || data.length === 0) {
+        container.innerHTML = '<div class="p-4 text-gray-500">尚無資料可供回測</div>';
+        return;
+    }
 
-                // 🌟 1. 找出各項目的前三名數值 (排除 0 次)
-                const metrics = ['hit_2', 'hit_3', 'hit_4', 'total_wins'];
-                const top3 = {};
-                metrics.forEach(m => {
-                    // 取出所有不重複的數值，並由大到小排序
-                    const uniqueVals = [...new Set(dataList.map(d => d[m]))]
-                        .filter(v => v > 0)
-                        .sort((a, b) => b - a);
-                    top3[m] = {
-                        1: uniqueVals[0], // 第一高分
-                        2: uniqueVals[1], // 第二高分
-                        3: uniqueVals[2]  // 第三高分
-                    };
-                });
+    // 🌟 1. 結算所有策略的「總獎金」
+    data.forEach(d => {
+        d.bonus = (d.hit_2 * 25) + (d.hit_3 * 150) + (d.hit_4 * 2000);
+    });
+    
+    // 🌟 2. 針對獎金排序出冠、亞、季軍 (取代原本的中獎次數排名)
+    let uniqueBonuses = [...new Set(data.map(d => d.bonus))].sort((a, b) => b - a);
+    let rankMap = {};
+    if (uniqueBonuses[0] > 0) rankMap[uniqueBonuses[0]] = ' 🏆冠軍'; // 金額最高
+    if (uniqueBonuses[1] > 0) rankMap[uniqueBonuses[1]] = ' 🥈亞軍'; // 金額第二
+    if (uniqueBonuses[2] > 0) rankMap[uniqueBonuses[2]] = ' 🥉季軍'; // 金額第三
 
-                // 🌟 2. 給予稱號與顏色的專屬函數
-                function getRankTag(metric, val) {
-                    if (!val || val === 0) return '';
-                    if (val === top3[metric][1]) return '<span class="text-[12px] text-[#C43A3A] font-bold ml-1">(🏆冠軍)</span>';
-                    if (val === top3[metric][2]) return '<span class="text-[12px] text-[#7A8B99] font-bold ml-1">(🥈亞軍)</span>';
-                    if (val === top3[metric][3]) return '<span class="text-[12px] text-[#B08546] font-bold ml-1">(🥉季軍)</span>';
-                    return ''; // 沒上榜就不顯示
-                }
+    let html = `
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[700px]">
+            <thead>
+                <tr class="bg-[#E5DDCF] text-[#595959] text-sm">
+                    <th class="p-3 rounded-tl-lg font-bold">玩法名稱</th>
+                    <th class="p-3 font-bold text-center">4中2 次數</th>
+                    <th class="p-3 font-bold text-center">4中3 次數</th>
+                    <th class="p-3 font-bold text-center">4中4 次數</th>
+                    <th class="p-3 font-bold text-center">總中獎次數</th>
+                    <th class="p-3 rounded-tr-lg font-bold text-center text-[#833B3B]">累積獎金 (點擊看細節)</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
 
-                // 🌟 3. 渲染表格 (並呼叫稱號函數)
-                tbody.innerHTML = dataList.map(r => `
-                    <tr class="border-b border-[#D1C8B6] hover:bg-[#F7F5F0] transition-colors">
-                        <td class="p-4">
-                            <div class="font-bold text-[#2C2C2C] text-base">${STRAT_LABEL[r.strategy] || r.strategy}</div>
-                        </td>
-                        <td class="p-3 text-center text-[#595959]">${r.hit_2}${getRankTag('hit_2', r.hit_2)}</td>
-                        <td class="p-3 text-center text-[#526E53] font-bold">${r.hit_3}${getRankTag('hit_3', r.hit_3)}</td>
-                        <td class="p-3 text-center text-[#833B3B] font-bold">${r.hit_4}${getRankTag('hit_4', r.hit_4)}</td>
-                        <td class="p-3 text-center font-bold text-[#3A5672]">${r.total_wins}${getRankTag('total_wins', r.total_wins)}</td>
-                    </tr>
-                    <tr class="bg-[#F7F5F0]">
-                        <td colspan="5" class="p-0 border-b border-[#D1C8B6]">
-                            <details class="w-full text-sm group outline-none">
-                                <summary class="cursor-pointer font-medium text-[#5C7A99] p-3 hover:bg-[#E4DDCF] transition-colors outline-none">
-                                    <span class="group-open:hidden">▶ 展開 ${STRAT_LABEL[r.strategy] || r.strategy} 的 10 組對獎細節</span>
-                                    <span class="hidden group-open:inline">▼ 收合對獎細節</span>
-                                </summary>
-                                <div class="p-4 pt-0 space-y-4">
-                                    ${r.details.map(d => `
-                                        <div class="bg-white p-4 rounded-xl border border-[#D1C8B6] shadow-sm">
-                                            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 pb-3 border-b border-[#E5E0D8] gap-2">
-                                                <div class="font-bold text-[#833B3B] text-[15px]">【${d.group_id === 1 ? '最新1期' : '第 ' + d.group_id + ' 組'}】下注 <span class="text-[#595959] text-[14px] ml-1">在 <b class="text-[#5C7A99] font-mono">${d.base_period}</b> 期下注</span></div>
-                                                <div class="text-xs text-[#595959] bg-[#F7F5F0] px-3 py-1.5 rounded-lg border border-[#D1C8B6] sm:text-right">
-                                                    對獎狀態：已開 <b class="text-[#2C2C2C]">${d.track_results.filter(x => x.status === 'drawn').length}</b> 期 / 待開 <b class="text-[#AF8D3B]">${d.track_results.filter(x => x.status === 'pending').length}</b> 期
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="flex items-center gap-3 mb-3">
-                                                <div class="text-[#2C2C2C] font-mono tracking-widest text-[15px] font-bold bg-[#E4DDCF] px-3 py-1.5 rounded-lg border border-[#D1C8B6]">
-                                                    號碼：${d.predicted_nums.join(' ')}
-                                                </div>
-                                                <div class="text-xs text-[#595959] flex gap-3">
-                                                    <span>4中2 <b class="text-[#595959] text-[13px]">${d.sub_hit_2}</b> 次</span>
-                                                    <span>4中3 <b class="text-[#526E53] text-[13px]">${d.sub_hit_3}</b> 次</span>
-                                                    <span>4中4 <b class="text-[#833B3B] text-[13px]">${d.sub_hit_4}</b> 次</span>
-                                                </div>
-                                            </div>
-                                            
-                                            <details class="text-xs text-[#7A7A7A] group/sub outline-none">
-                                                <summary class="cursor-pointer hover:text-[#5C7A99] outline-none font-medium">
-                                                    <span class="group-open/sub:hidden">查看 10 期詳細開獎進度 ▼</span>
-                                                    <span class="hidden group-open/sub:inline">隱藏開獎進度 ▲</span>
-                                                </summary>
-                                                <div class="mt-3 flex flex-wrap gap-2">
-                                                    ${d.track_results.map(tr => {
-                                                        if (tr.status === 'drawn') {
-                                                            return `<span class="bg-[#F7F5F0] px-2 py-1.5 rounded-md border border-[#E5E0D8] shadow-sm ${tr.hits >= 2 ? 'text-[#833B3B] font-bold border-[#D08C8C] bg-[#F9F4F4]' : ''}">${tr.period} (中${tr.hits})</span>`;
-                                                        } else {
-                                                            return `<span class="bg-[#E4DDCF] px-2 py-1.5 rounded-md border border-[#D1C8B6] text-[#7A7A7A] italic shadow-sm flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-[#AF8D3B] animate-pulse"></span>${tr.period} (待開)</span>`;
-                                                        }
-                                                    }).join('')}
-                                                </div>
-                                            </details>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            </details>
-                        </td>
-                    </tr>
-                `).join('');
-            }
+    const STRAT_LABEL = {
+        'pure_hot': '🌶️純熱門',
+        'hot': '🔥追熱門',
+        'markov': '🔗馬可夫',
+        'dual_window': '🌟雙窗熱號'
+    };
+
+    data.forEach((r, idx) => {
+        let label = STRAT_LABEL[r.strategy] || r.strategy;
+        // 取出這組的獎金獎牌
+        let medalHtml = rankMap[r.bonus] ? `<span class="ml-1 text-xs text-red-600 font-bold">(${rankMap[r.bonus]})</span>` : '';
+        
+        // 🌟 獎金計算公式文字
+        let calcFormula = `(${r.hit_2}次 × 25元) + (${r.hit_3}次 × 150元) + (${r.hit_4}次 × 2000元)<br>= ${r.hit_2 * 25}元 + ${r.hit_3 * 150}元 + ${r.hit_4 * 2000}元<br>= <b class="text-black">${r.bonus.toLocaleString()} 元</b>。`;
+
+        // 🌟 3. 內部對獎細節 HTML (加上 4中4 🧧標記)
+        let detailsHtml = r.details.map(d => {
+            let h4Display = d.sub_hit_4 > 0 ? `<span class="text-red-600 font-bold bg-red-50 px-2 py-1 rounded">🧧 ${d.sub_hit_4} 次 🧧</span>` : `${d.sub_hit_4} 次`;
+            return `
+                <div class="py-3 border-b border-gray-100 last:border-0">
+                    <div class="font-bold text-[#833B3B] text-[15px]">【${d.group_id === 1 ? '最新1期' : '第 ' + d.group_id + ' 組'}】下注 <span class="text-[#595959] text-[14px] ml-1">在 <b class="text-[#5C7A99] font-mono">${d.base_period}</b> 期下注</span></div>
+                    <div class="text-gray-700 text-sm mt-1 mb-2">號碼：<span class="font-mono text-black font-bold tracking-widest text-base ml-1">${d.predicted_nums.join(' ')}</span></div>
+                    <div class="grid grid-cols-3 gap-2 text-sm text-gray-500">
+                        <div>4中2：${d.sub_hit_2} 次</div>
+                        <div>4中3：${d.sub_hit_3} 次</div>
+                        <div>4中4：${h4Display}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        html += `
+            <tr class="border-b border-gray-200/60 hover:bg-white/50 transition">
+                <td class="p-3 font-bold text-gray-800">${label}</td>
+                <td class="p-3 text-center text-gray-600">${r.hit_2}</td>
+                <td class="p-3 text-center text-gray-600">${r.hit_3}</td>
+                <td class="p-3 text-center text-gray-600">${r.hit_4}</td>
+                <td class="p-3 text-center font-bold text-gray-600">${r.total_wins}</td>
+                <td class="p-3 text-center">
+                    <!-- 點擊觸發顯示隱藏的計算式 -->
+                    <div class="cursor-pointer text-[#D97736] font-bold text-[17px] hover:text-red-600 transition" 
+                         onclick="document.getElementById('calc-${containerId}-${idx}').classList.toggle('hidden')">
+                        ${r.bonus.toLocaleString()} 元${medalHtml}
+                    </div>
+                    <div id="calc-${containerId}-${idx}" class="hidden mt-2 text-[13px] text-gray-500 bg-[#F4F4F4] p-2 rounded text-left leading-relaxed">
+                        ${calcFormula}
+                    </div>
+                </td>
+            </tr>
+            <tr class="bg-slate-50/30">
+                <td colspan="6" class="p-0">
+                    <details class="group">
+                        <summary class="cursor-pointer p-2 text-sm text-[#5C7A99] hover:bg-slate-100 transition list-none outline-none text-center">
+                            <span class="group-open:hidden">▶ 展開 ${label} 的 11 組對獎細節</span>
+                            <span class="hidden group-open:inline text-red-400">▼ 關閉細節</span>
+                        </summary>
+                        <div class="p-4 bg-white border-t border-slate-100">
+                            ${detailsHtml}
+                        </div>
+                    </details>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+}
 
             // 分別呼叫兩次函數，渲染上下的 AI 核心與脆友表格
             if (data.tracking_win_rate) {
