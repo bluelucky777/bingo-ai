@@ -503,15 +503,41 @@
 
                         let detailsHtml = r.details.map(d => {
                             let h4Display = d.sub_hit_4 > 0 ? `<span class="text-red-600 font-bold bg-red-50 px-2 py-1 rounded">🧧 ${d.sub_hit_4} 次 🧧</span>` : `${d.sub_hit_4} 次`;
+                            
+                            // 🌟 修正了這裡的跳脫字元，讓變數正常解析
+                            let trackResultsHtml = `
+                                <details class="text-xs text-[#7A7A7A] mt-3 group/sub outline-none">
+                                    <summary class="cursor-pointer hover:text-[#5C7A99] outline-none font-medium">
+                                        <span class="group-open/sub:hidden">查看 10 期詳細開獎進度 ▼</span>
+                                        <span class="hidden group-open/sub:inline">隱藏開獎進度 ▲</span>
+                                    </summary>
+                                    <div class="mt-3 flex flex-wrap gap-2">
+                                        ${d.track_results.map(tr => {
+                                            if (tr.status === 'drawn') {
+                                                return `<span class="bg-[#F7F5F0] px-2 py-1.5 rounded-md border border-[#E5E0D8] shadow-sm ${tr.hits >= 2 ? 'text-[#833B3B] font-bold border-[#D08C8C] bg-[#F9F4F4]' : ''}">${tr.period} (中${tr.hits})</span>`;
+                                            } else {
+                                                return `<span class="bg-[#E4DDCF] px-2 py-1.5 rounded-md border border-[#D1C8B6] text-[#7A7A7A] italic shadow-sm flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-[#AF8D3B] animate-pulse"></span>${tr.period} (待開)</span>`;
+                                            }
+                                        }).join('')}
+                                    </div>
+                                </details>
+                            `;
+
                             return `
                                 <div class="py-3 border-b border-[#E5E0D8] last:border-0">
-                                    <div class="font-bold text-[#833B3B] text-[15px]">【${d.group_id === 1 ? '最新1期' : '第 ' + d.group_id + ' 組'}】下注 <span class="text-[#595959] text-[14px] ml-1">在 <b class="text-[#5C7A99] font-mono">${d.base_period}</b> 期下注</span></div>
-                                    <div class="text-[#2C2C2C] text-sm mt-1 mb-2 font-bold tracking-widest bg-[#E4DDCF] inline-block px-3 py-1 rounded-lg border border-[#D1C8B6]">號碼：${d.predicted_nums.join(' ')}</div>
+                                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2">
+                                        <div class="font-bold text-[#833B3B] text-[15px]">【${d.group_id === 1 ? '最新1期' : '第 ' + d.group_id + ' 組'}】下注 <span class="text-[#595959] text-[14px] ml-1">在 <b class="text-[#5C7A99] font-mono">${d.base_period}</b> 期下注</span></div>
+                                        <div class="text-xs text-[#595959] bg-[#F7F5F0] px-3 py-1.5 rounded-lg border border-[#D1C8B6] sm:text-right mt-2 sm:mt-0">
+                                            對獎狀態：已開 <b class="text-[#2C2C2C]">${d.track_results.filter(x => x.status === 'drawn').length}</b> 期 / 待開 <b class="text-[#AF8D3B]">${d.track_results.filter(x => x.status === 'pending').length}</b> 期
+                                        </div>
+                                    </div>
+                                    <div class="text-[#2C2C2C] text-sm mb-2 font-bold tracking-widest bg-[#E4DDCF] inline-block px-3 py-1 rounded-lg border border-[#D1C8B6]">號碼：${d.predicted_nums.join(' ')}</div>
                                     <div class="flex gap-4 text-sm text-[#595959]">
                                         <span>4中2：${d.sub_hit_2} 次</span>
                                         <span>4中3：${d.sub_hit_3} 次</span>
                                         <span>4中4：${h4Display}</span>
                                     </div>
+                                    ${trackResultsHtml}
                                 </div>
                             `;
                         }).join('');
