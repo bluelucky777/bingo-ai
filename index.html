@@ -521,7 +521,7 @@
                                 <td class="p-3 font-bold text-[#2C2C2C]">${label}</td>
                                 <td class="p-3 text-center text-[#595959]">${r.hit_2}</td>
                                 <td class="p-3 text-center text-[#526E53] font-bold">${r.hit_3}</td>
-                                <td class="p-3 text-center text-[#833B3B] font-bold">${r.hit_4}</td>
+                                <td class="p-3 text-center text-[#833B3B] font-bold">${r.hit_4 > 0 ? `<span class="text-red-600 font-bold bg-red-50 px-2 py-1 rounded shadow-sm border border-red-200">🧧 ${r.hit_4} 次 🧧</span>` : r.hit_4}</td>
                                 <td class="p-3 text-center font-bold text-[#3A5672]">${r.total_wins}</td>
                                 <td class="p-3 text-center">
                                     <div class="cursor-pointer text-[#D97736] font-bold text-[17px] hover:text-red-600 transition" 
