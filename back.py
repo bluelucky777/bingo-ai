@@ -395,28 +395,6 @@ def _compute_strategy_pools(history_nums, n_groups=None):
 
     return pools
 
-def _backtest_champion(history_nums, lookback=30):
-    if len(history_nums) < lookback + 10: return None, None, {}
-    # 🌟 補上 g1_to_g5 的中文對照
-    name_map = {'cheng2': '承 2.0', 'baobaolong': '暴暴龍', 'triangle': '本頻道的老祖宗', 'g1_to_g5': '老祖宗攻略1-5'}
-    score_sums = collections.defaultdict(float)
-    score_counts = collections.defaultdict(int)
-    for i in range(lookback):
-        past = history_nums[i + 1:]
-        if not past: continue
-        actual = set(history_nums[i])
-        past_pools = _compute_strategy_pools(past, n_groups=None)
-        for name, pool_set in past_pools.items():
-            unique = set(pool_set)
-            if not unique: continue
-            lift = len(unique & actual) / (len(unique) * 0.25)
-            score_sums[name] += lift
-            score_counts[name] += 1
-    avg_scores = {k: score_sums[k] / score_counts[k] for k in score_sums if score_counts[k] > 0}
-    if not avg_scores: return None, None, {}
-    champion_key = max(avg_scores, key=avg_scores.get)
-    return champion_key, name_map.get(champion_key, champion_key), avg_scores
-
 def _top_cooccurrence_triple_pool(history_nums, top_n_triples=10, recent_cap=500):
     if not history_nums: return []
     recent = history_nums[:recent_cap]
@@ -448,22 +426,12 @@ def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None, full_h
     weighted = compute_weighted_counts(full)
     pools_dict = _compute_strategy_pools(full, n_groups)
 
-    champion_key, champion_name_zh, _ = _backtest_champion(full, lookback=20)
-    if champion_key:
-        full_pools_for_champion = _compute_strategy_pools(full, n_groups=None)
-        pools_dict['champion'] = full_pools_for_champion.get(champion_key, [])
-        champion_label = f"老祖宗的回測冠軍：{champion_name_zh}"
-    else:
-        pools_dict['champion'] = []
-        champion_label = "老祖宗的回測冠軍（資料不足）"
-
     pools_dict['cluster3'] = _top_cooccurrence_triple_pool(full, top_n_triples=10)
 
-    # 🌟 移除了舊版 cheng 與 xiaotian，留下 S 級陣容
+    # 🌟 移除了拖慢效能的回測冠軍，留下最純粹的 S 級陣容
     pools_meta = [
         ("g1_to_g5", "老祖宗攻略1-5", "整合 G1~G4 多因子共識評分，最高分優先"),
         ("triangle", "本頻道的老祖宗", "高頻 ∩ 共伴 ∩ 不冷"),
-        ("champion", champion_label, "近 20 期表現最佳池當期候選"),
         ("cluster3", "老祖宗的三人", "歷史最常 3 顆同開的鐵三角們"),
         ("cheng2", "承 2.0", "近 20 期熱 + 近 10 期冷"),
         ("baobaolong", "暴暴龍", "上期 ±1 鄰號"),
