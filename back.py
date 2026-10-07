@@ -397,7 +397,8 @@ def _compute_strategy_pools(history_nums, n_groups=None):
 
 def _backtest_champion(history_nums, lookback=30):
     if len(history_nums) < lookback + 10: return None, None, {}
-    name_map = {'cheng2': '承 2.0', 'baobaolong': '暴暴龍', 'triangle': '本頻道的老祖宗'}
+    # 🌟 補上 g1_to_g5 的中文對照
+    name_map = {'cheng2': '承 2.0', 'baobaolong': '暴暴龍', 'triangle': '本頻道的老祖宗', 'g1_to_g5': '老祖宗攻略1-5'}
     score_sums = collections.defaultdict(float)
     score_counts = collections.defaultdict(int)
     for i in range(lookback):
