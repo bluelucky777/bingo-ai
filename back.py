@@ -482,7 +482,7 @@ def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None, full_h
 _WIN_RATE_CACHE = {}
 
 def calculate_tracking_win_rate(full_history):
-    if len(full_history) < 25:  # 保險起見，把資料長度要求稍微拉高一點點
+    if len(full_history) < 25:
         return {"core": [], "expert": []}
 
     latest_period = full_history[0]['period']
@@ -496,28 +496,24 @@ def calculate_tracking_win_rate(full_history):
     core_res = {s: {"strategy": s, "hit_2": 0, "hit_3": 0, "hit_4": 0, "total_wins": 0, "details": []} for s in core_strats}
     expert_res = {}
 
-    # 🌟 顛倒順序：直接用 i，讓 i=0 (最新期數) 成為第 1 組
     for i in range(11):
         target_idx = i  
         if target_idx >= len(full_history):
             continue
         
-        # 限制只抓 60 期歷史，提升運算速度
-        history_slice = full_history[target_idx : target_idx + 60]
-        if len(history_slice) < 5:
+        # 🌟 你的神級拆分法：把核心和脆友的歷史資料分開！
+        # 1. 核心 AI 專用：給 120 期 (讓馬可夫跟雙窗熱號吃飽，恢復 100% 準度)
+        history_slice_core = full_history[target_idx : target_idx + 120]
+        # 2. 脆友回測專用：只給 60 期 (封印脆友的多重迴圈，保持極速不卡頓)
+        history_slice_expert = full_history[target_idx : target_idx + 60]
+        
+        if len(history_slice_core) < 5:
             continue
         
-        base_period = history_slice[0]['period']
-        
-        # 綁定期數當作專屬密碼，鎖死歷史亂數
+        base_period = history_slice_core[0]['period']
         local_rng = random.Random(f"369_{base_period}")
 
-        history_for_pred = [item['numbers'] for item in history_slice]
-        wrapped = [{"numbers": nums} for nums in history_for_pred]
-        
-        # 🌟 把專屬密碼 (local_rng) 傳遞給所有會用到亂數的函數
-        n_groups = get_n_groups(wrapped, rng=local_rng)
-        
+        # --- 準備對獎狀態列表 ---
         track_info_list = []
         last_known = int(base_period)
         for step in range(1, 11):
@@ -556,11 +552,22 @@ def calculate_tracking_win_rate(full_history):
                 "track_results": t_results
             })
 
+        # 🌟 1. 運算 AI 核心預測 (餵入 120 期大數據)
+        history_for_core = [item['numbers'] for item in history_slice_core]
+        wrapped_core = [{"numbers": nums} for nums in history_for_core]
+        n_groups_core = get_n_groups(wrapped_core, rng=local_rng)
+
         for s in core_strats:
-            pred = analyze_strategy(history_for_pred, s, n_groups, ball_count=4, rng=local_rng)
+            # 演算法內部已經有寫好：純熱門/追熱門會自動只拿這 120 期裡面的「前 10 期」來算！
+            pred = analyze_strategy(history_for_core, s, n_groups_core, ball_count=4, rng=local_rng)
             _evaluate_and_record([p['num'] for p in pred], core_res, s)
             
-        experts = get_expert_strategies(history_for_pred, n_groups, ball_count=4, rng=local_rng, full_history_nums=history_for_pred)
+        # 🌟 2. 運算脆友攻略推薦 (餵入 60 期極速數據)
+        history_for_expert = [item['numbers'] for item in history_slice_expert]
+        wrapped_expert = [{"numbers": nums} for nums in history_for_expert]
+        n_groups_expert = get_n_groups(wrapped_expert, rng=local_rng)
+        
+        experts = get_expert_strategies(history_for_expert, n_groups_expert, ball_count=4, rng=local_rng, full_history_nums=history_for_expert)
         for exp in experts:
             ekey = exp['key']
             if ekey not in expert_res:
