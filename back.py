@@ -451,41 +451,34 @@ def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None, full_h
 _WIN_RATE_CACHE = {}
 
 # 🌟 修改 1：加入 ball_count=4 作為預設參數
-def calculate_tracking_win_rate(full_history, ball_count=4):
+def calculate_tracking_win_rate(full_history):
     if len(full_history) < 25:
-        return {"core": [], "expert": []}
+        return {"3": {"core": [], "expert": []}, "4": {"core": [], "expert": []}}
 
     latest_period = full_history[0]['period']
-    # 🌟 修改 2：讓快取記憶體把 3星 和 4星 的結果分開存，避免切換時打架
-    cache_key = f"{latest_period}_{ball_count}"
-    if cache_key in _WIN_RATE_CACHE:
-        return _WIN_RATE_CACHE[cache_key]
+    if latest_period in _WIN_RATE_CACHE:
+        return _WIN_RATE_CACHE[latest_period]
 
     import collections
     import random
     
     core_strats = ['pure_hot', 'hot', 'markov', 'dual_window']
-    core_res = {s: {"strategy": s, "hit_2": 0, "hit_3": 0, "hit_4": 0, "total_wins": 0, "details": []} for s in core_strats}
-    expert_res = {}
+    
+    # 🌟 準備兩本成績單：一本記 3星，一本記 4星
+    res_3 = {"core": {s: {"strategy": s, "hit_2": 0, "hit_3": 0, "hit_4": 0, "total_wins": 0, "details": []} for s in core_strats}, "expert": {}}
+    res_4 = {"core": {s: {"strategy": s, "hit_2": 0, "hit_3": 0, "hit_4": 0, "total_wins": 0, "details": []} for s in core_strats}, "expert": {}}
 
     for i in range(11):
         target_idx = i  
-        if target_idx >= len(full_history):
-            continue
+        if target_idx >= len(full_history): continue
         
-        # 🌟 你的神級拆分法：把核心和脆友的歷史資料分開！
-        # 1. 核心 AI 專用：給 60 期 (讓馬可夫跟雙窗熱號吃飽，恢復 100% 準度)
         history_slice_core = full_history[target_idx : target_idx + 60]
-        # 2. 脆友回測專用：只給 60 期 (封印脆友的多重迴圈，保持極速不卡頓)
         history_slice_expert = full_history[target_idx : target_idx + 60]
-        
-        if len(history_slice_core) < 5:
-            continue
+        if len(history_slice_core) < 5: continue
         
         base_period = history_slice_core[0]['period']
         local_rng = random.Random(f"369_{base_period}")
 
-        # --- 準備對獎狀態列表 ---
         track_info_list = []
         last_known = int(base_period)
         for step in range(1, 11):
@@ -498,8 +491,9 @@ def calculate_tracking_win_rate(full_history, ball_count=4):
                 last_known += 1
                 track_info_list.append({"period": str(last_known), "drawn": set(), "status": "pending"})
                 
-        def _evaluate_and_record(picks, target_dict, key):
-            pred_set = set(picks)
+        # 🌟 這個函數現在可以動態看要「切幾顆」來對答案
+        def _evaluate_and_record(picks, target_dict, key, b_count):
+            pred_set = set(picks[:b_count]) # 切片：只要前 3 顆 或 前 4 顆
             h2 = h3 = h4 = 0
             t_results = []
             
@@ -517,43 +511,46 @@ def calculate_tracking_win_rate(full_history, ball_count=4):
             target_dict[key]["details"].append({
                 "group_id": i + 1,
                 "base_period": base_period,
-                "predicted_nums": sorted(picks),
+                "predicted_nums": sorted(picks[:b_count]),
                 "sub_hit_2": h2,
                 "sub_hit_3": h3,
                 "sub_hit_4": h4,
                 "track_results": t_results
             })
 
-        # 🌟 1. 運算 AI 核心預測 (餵入 120 期大數據)
+        # 🌟 核心預測 (AI 只算一次 4 顆！)
         history_for_core = [item['numbers'] for item in history_slice_core]
         wrapped_core = [{"numbers": nums} for nums in history_for_core]
         n_groups_core = get_n_groups(wrapped_core, rng=local_rng)
 
-        # 🌟 修改 3：把 core 裡面的 ball_count=4 換成動態變數
         for s in core_strats:
-            pred = analyze_strategy(history_for_core, s, n_groups_core, ball_count=ball_count, rng=local_rng)
-            _evaluate_and_record([p['num'] for p in pred], core_res, s)
+            pred = analyze_strategy(history_for_core, s, n_groups_core, ball_count=4, rng=local_rng)
+            picks = [p['num'] for p in pred]
+            _evaluate_and_record(picks, res_3["core"], s, 3) # 登記 3星 成績
+            _evaluate_and_record(picks, res_4["core"], s, 4) # 登記 4星 成績
             
-        # 🌟 修改 4：把 expert 裡面的 ball_count=4 跟切片的長度換成動態變數
+        # 🌟 脆友預測 (AI 只算一次 4 顆！)
         history_for_expert = [item['numbers'] for item in history_slice_expert]
         wrapped_expert = [{"numbers": nums} for nums in history_for_expert]
         n_groups_expert = get_n_groups(wrapped_expert, rng=local_rng)
         
-        experts = get_expert_strategies(history_for_expert, n_groups_expert, ball_count=ball_count, rng=local_rng, full_history_nums=history_for_expert)
+        experts = get_expert_strategies(history_for_expert, n_groups_expert, ball_count=4, rng=local_rng, full_history_nums=history_for_expert)
         for exp in experts:
             ekey = exp['key']
-            if ekey not in expert_res:
-                expert_res[ekey] = {"strategy": exp['name'], "hit_2": 0, "hit_3": 0, "hit_4": 0, "total_wins": 0, "details": []}
-            _evaluate_and_record(exp['picks'][:ball_count], expert_res, ekey)
+            if ekey not in res_3["expert"]:
+                res_3["expert"][ekey] = {"strategy": exp['name'], "hit_2": 0, "hit_3": 0, "hit_4": 0, "total_wins": 0, "details": []}
+                res_4["expert"][ekey] = {"strategy": exp['name'], "hit_2": 0, "hit_3": 0, "hit_4": 0, "total_wins": 0, "details": []}
+            _evaluate_and_record(exp['picks'], res_3["expert"], ekey, 3)
+            _evaluate_and_record(exp['picks'], res_4["expert"], ekey, 4)
 
+    # 🌟 打包兩份報告
     final_result = {
-        "core": list(core_res.values()),
-        "expert": list(expert_res.values())
+        "3": {"core": list(res_3["core"].values()), "expert": list(res_3["expert"].values())},
+        "4": {"core": list(res_4["core"].values()), "expert": list(res_4["expert"].values())}
     }
 
     _WIN_RATE_CACHE.clear()
-    # 🌟 修改 5：存入快取時使用 cache_key
-    _WIN_RATE_CACHE[cache_key] = final_result
+    _WIN_RATE_CACHE[latest_period] = final_result
 
     return final_result
 
