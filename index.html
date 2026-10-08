@@ -510,7 +510,7 @@
                                 <th class="p-3 font-bold text-center text-[#833B3B]">累積獎金 (點擊看細節)</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="${containerId}"> <!-- 🌟 修正這裡：把身分證 ID 動態加回來 -->
                     `;
 
                     const STRAT_LABEL = { 'pure_hot': '🌶️純熱門', 'hot': '🔥追熱門', 'markov': '🔗馬可夫', 'dual_window': '🌟雙窗熱號' };
@@ -594,8 +594,8 @@
                         `;
                     });
                     html += `</tbody>`;
-                    // 為了讓 table 重繪 THEAD 與 TBODY，我們把內容直接灌進 <table> 裡
-                    container.parentElement.innerHTML = `<table class="w-full text-left border-collapse min-w-[700px] bg-white rounded-lg overflow-hidden border border-[#D1C8B6]" id="${containerId.replace('-tbody', '-table')}">${html}</table>`;
+                    // 🌟 修正這裡：直接替換 Table 的內部內容，不要再包一層多餘的 <table>
+                    container.parentElement.innerHTML = html;
                 }
 
                 // 🌟 正確傳遞資料與 ID，同時渲染上下兩張表
