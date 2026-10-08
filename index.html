@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>數字 AI 分析儀 - 專家 3.0 加權版</title>
-
+    
     <!-- 注意：Tailwind CDN 不適合 production，正式上線前建議改 PostCSS build -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
@@ -286,7 +286,7 @@
                 </div>
             </div>
             <div class="bg-[#F2ECE1] p-6 rounded-2xl border-l-8 border-[#AF8D3B] shadow-[0_4px_20px_rgb(0,0,0,0.04)] mb-6">
-                <h3 class="text-lg font-bold text-[#AF8D3B] mb-2">🔮 AI 核心預測 - 近期 4 星追蹤</h3>
+                <h3 id="winrate-core-title" class="text-lg font-bold text-[#AF8D3B] mb-2">🔮 AI 核心預測 - 近期 4 星追蹤</h3>
                 <p class="text-xs text-[#595959] mb-5">系統於歷史近 11 期分別產生 4 顆號碼，並對每組號碼「連續對獎未來的 10 期」。</p>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse min-w-[700px] bg-white rounded-lg overflow-hidden border border-[#D1C8B6]">
@@ -309,7 +309,7 @@
 
             <!-- 脆友攻略推薦區塊 -->
             <div class="bg-[#F2ECE1] p-6 rounded-2xl border-l-8 border-[#526E53] shadow-[0_4px_20px_rgb(0,0,0,0.04)]">
-                <h3 class="text-lg font-bold text-[#526E53] mb-4">💡 脆友攻略推薦 - 近期 4 星追蹤</h3>
+                <h3 id="winrate-expert-title" class="text-lg font-bold text-[#526E53] mb-4">💡 脆友攻略推薦 - 近期 4 星追蹤</h3>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse min-w-[700px] bg-white rounded-lg overflow-hidden border border-[#D1C8B6]">
                         <thead>
@@ -350,6 +350,7 @@
     </div>
 
     <script>
+        
         // === 設定區 ===
         // 本機開發：'http://localhost:5001'
         // 部署後改為 Render URL，例：'https://three69-bingo-ai.onrender.com'
@@ -373,6 +374,7 @@
         // === 狀態 ===
         // 已套用設定（給 API 用）：策略立即套用、其他設定需按按鈕才套用
         let currentLimit = 10, strat = 'hot', currentBallCount = 4, expertBallCount = 4, trackingBallCount = 4;
+        let globalTrackingData = null;
         // 使用者選擇中設定（pending，等按鈕才會 sync 進 current）
         let pendingLimit = 10, pendingBallCount = 4, pendingExpertBallCount = 4;
         let lastPeriodSeen = null;
@@ -422,7 +424,7 @@
             const myCtrl = new AbortController();
             inflightCtrl = myCtrl;
             setLoading(true);
-            const url = `${API_BASE}/api/predict?limit=${currentLimit}&strategy=${strat}&ball_count=${currentBallCount}&expert_count=${expertBallCount}&tracking_ball=${trackingBallCount}`;
+            const url = `${API_BASE}/api/predict?limit=${currentLimit}&strategy=${strat}&ball_count=${currentBallCount}&expert_count=${expertBallCount}`;
             try {
                 const resp = await fetch(url, { signal: myCtrl.signal });
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -598,10 +600,10 @@
                     container.parentElement.innerHTML = html;
                 }
 
-                // 🌟 正確傳遞資料與 ID，同時渲染上下兩張表
+                // 🌟 把後端給的兩份報告存起來，然後呼叫重繪函數
                 if (data.tracking_win_rate) {
-                    renderWinRateTable(data.tracking_win_rate.core, 'winrate-core-tbody');
-                    renderWinRateTable(data.tracking_win_rate.expert, 'winrate-expert-tbody');
+                    globalTrackingData = data.tracking_win_rate; // 把資料存在全域變數裡
+                    updateWinRateDisplay(); // 呼叫我們剛剛新增的瞬間渲染函數
                 }
             }
 
@@ -1302,11 +1304,26 @@
         b.classList.add('bg-transparent', 'text-[#595959]');
     });
     const activeBtn = document.getElementById('tb-btn-' + n);
-    activeBtn.classList.remove('bg-transparent', 'text-[#595959]');
-    activeBtn.classList.add('bg-[#AF8D3B]', 'text-white', 'shadow-md');
+    if(activeBtn) {
+        activeBtn.classList.remove('bg-transparent', 'text-[#595959]');
+        activeBtn.classList.add('bg-[#AF8D3B]', 'text-white', 'shadow-md');
+    }
     
-    // 觸發重新向後端要資料
-    fetchAnalysis('all');
+    // 🌟 不再向伺服器要資料，直接用記憶體瞬間變形！
+    updateWinRateDisplay();
+}
+
+    function updateWinRateDisplay() {
+    if (!globalTrackingData) return;
+    const targetData = globalTrackingData[trackingBallCount.toString()];
+    if (targetData) {
+        // 瞬間重繪表格
+        renderWinRateTable(targetData.core, 'winrate-core-tbody');
+        renderWinRateTable(targetData.expert, 'winrate-expert-tbody');
+        // 動態修改標題
+        document.getElementById('winrate-core-title').innerText = `🔮 AI 核心預測 - 近期 ${trackingBallCount} 星追蹤`;
+        document.getElementById('winrate-expert-title').innerText = `💡 脆友攻略推薦 - 近期 ${trackingBallCount} 星追蹤`;
+    }
 }
 
     </script>
