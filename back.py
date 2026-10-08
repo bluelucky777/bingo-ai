@@ -450,13 +450,16 @@ def get_expert_strategies(history_nums, n_groups, ball_count=3, rng=None, full_h
 # 🌟 效能大躍進：為近期勝率建立專屬記憶體
 _WIN_RATE_CACHE = {}
 
-def calculate_tracking_win_rate(full_history):
+# 🌟 修改 1：加入 ball_count=4 作為預設參數
+def calculate_tracking_win_rate(full_history, ball_count=4):
     if len(full_history) < 25:
         return {"core": [], "expert": []}
 
     latest_period = full_history[0]['period']
-    if latest_period in _WIN_RATE_CACHE:
-        return _WIN_RATE_CACHE[latest_period]
+    # 🌟 修改 2：讓快取記憶體把 3星 和 4星 的結果分開存，避免切換時打架
+    cache_key = f"{latest_period}_{ball_count}"
+    if cache_key in _WIN_RATE_CACHE:
+        return _WIN_RATE_CACHE[cache_key]
 
     import collections
     import random
@@ -526,22 +529,22 @@ def calculate_tracking_win_rate(full_history):
         wrapped_core = [{"numbers": nums} for nums in history_for_core]
         n_groups_core = get_n_groups(wrapped_core, rng=local_rng)
 
+        # 🌟 修改 3：把 core 裡面的 ball_count=4 換成動態變數
         for s in core_strats:
-            # 演算法內部已經有寫好：純熱門/追熱門會自動只拿這 120 期裡面的「前 10 期」來算！
-            pred = analyze_strategy(history_for_core, s, n_groups_core, ball_count=4, rng=local_rng)
+            pred = analyze_strategy(history_for_core, s, n_groups_core, ball_count=ball_count, rng=local_rng)
             _evaluate_and_record([p['num'] for p in pred], core_res, s)
             
-        # 🌟 2. 運算脆友攻略推薦 (餵入 60 期極速數據)
+        # 🌟 修改 4：把 expert 裡面的 ball_count=4 跟切片的長度換成動態變數
         history_for_expert = [item['numbers'] for item in history_slice_expert]
         wrapped_expert = [{"numbers": nums} for nums in history_for_expert]
         n_groups_expert = get_n_groups(wrapped_expert, rng=local_rng)
         
-        experts = get_expert_strategies(history_for_expert, n_groups_expert, ball_count=4, rng=local_rng, full_history_nums=history_for_expert)
+        experts = get_expert_strategies(history_for_expert, n_groups_expert, ball_count=ball_count, rng=local_rng, full_history_nums=history_for_expert)
         for exp in experts:
             ekey = exp['key']
             if ekey not in expert_res:
                 expert_res[ekey] = {"strategy": exp['name'], "hit_2": 0, "hit_3": 0, "hit_4": 0, "total_wins": 0, "details": []}
-            _evaluate_and_record(exp['picks'][:4], expert_res, ekey)
+            _evaluate_and_record(exp['picks'][:ball_count], expert_res, ekey)
 
     final_result = {
         "core": list(core_res.values()),
@@ -549,7 +552,8 @@ def calculate_tracking_win_rate(full_history):
     }
 
     _WIN_RATE_CACHE.clear()
-    _WIN_RATE_CACHE[latest_period] = final_result
+    # 🌟 修改 5：存入快取時使用 cache_key
+    _WIN_RATE_CACHE[cache_key] = final_result
 
     return final_result
 
