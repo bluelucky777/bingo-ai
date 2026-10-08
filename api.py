@@ -106,9 +106,6 @@ def predict():
         ball_count = int(request.args.get('ball_count', 6))
         expert_count = int(request.args.get('expert_count', 3))
         run_backtest = request.args.get('backtest', '1') == '1'
-        
-        # 🌟 新增這行：攔截前端傳來的 3 或 4 (預設為 4)
-        tracking_ball = int(request.args.get('tracking_ball', 4))
 
         full_history, last_update = _load_history()
         if not full_history:
@@ -124,16 +121,16 @@ def predict():
             _CURRENT_CACHE_PERIOD = latest_period
             print(f"🔄 偵測到新期數 {latest_period}，已清空舊快取。")
 
-        # 🌟 修改這行：為這次使用者的選項打造一把專屬鑰匙，加入 tracking_ball 避免 3星與4星快取打架
-        cache_key = (strategy, limit, ball_count, expert_count, run_backtest, tracking_ball)
+        # 🌟 恢復為這 5 個參數的專屬鑰匙，因為 tracking_ball 的切換已經移交給前端處理了
+        cache_key = (strategy, limit, ball_count, expert_count, run_backtest)
 
         # 檢查黑板上有沒有算好的答案？有就直接秒回傳！
         if cache_key in _PREDICT_CACHE:
-            print(f"⚡ 快取命中！瞬間回傳 {latest_period} 的運算結果。 (策略: {strategy}, 球數: {ball_count}, 追蹤球數: {tracking_ball})")
+            print(f"⚡ 快取命中！瞬間回傳 {latest_period} 的運算結果。 (策略: {strategy}, 球數: {ball_count})")
             return jsonify(_PREDICT_CACHE[cache_key])
         # === 快取攔截機制 END ===
 
-        print(f"⏳ 尚無快取，開始進行龐大運算... (策略: {strategy}, 球數: {ball_count}, 追蹤球數: {tracking_ball})")
+        print(f"⏳ 尚無快取，開始進行龐大運算... (策略: {strategy}, 球數: {ball_count})")
 
         history_data = full_history[:limit]
         display_history = full_history[:max(limit, 20)]
@@ -156,8 +153,8 @@ def predict():
         expert = get_expert_strategies(nums_only, n_groups, expert_count, full_history_nums=full_nums)
         bias_report = get_frequency_bias_report(full_nums)
         
-        # 🌟 修改這行：呼叫 calculate_tracking_win_rate 時，把 tracking_ball 參數傳進去
-        tracking_win_rate = calculate_tracking_win_rate(full_history, ball_count=tracking_ball)
+        # 🌟 修改這行：不傳球數參數，直接讓 back.py 的新版函數一次算出 3星 跟 4星 的打包雙重報告
+        tracking_win_rate = calculate_tracking_win_rate(full_history)
 
         backtest = {}
         best_strategy_prediction = None
