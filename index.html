@@ -1228,12 +1228,18 @@
 
         function updateWinRateDisplay() {
             if (!globalTrackingData) return;
+            
             const targetData = globalTrackingData[trackingBallCount.toString()];
             if (targetData) {
+                // 資料正確，瞬間重繪表格
                 renderWinRateTable(targetData.core, 'winrate-core-tbody');
                 renderWinRateTable(targetData.expert, 'winrate-expert-tbody');
                 document.getElementById('winrate-core-title').innerText = `🔮 AI 核心預測 - 近期 ${trackingBallCount} 星追蹤`;
                 document.getElementById('winrate-expert-title').innerText = `💡 脆友攻略推薦 - 近期 ${trackingBallCount} 星追蹤`;
+            } else {
+                // ⚠️ 如果找不到資料（代表伺服器傳來的還是舊格式）
+                console.error("收到的資料格式異常:", globalTrackingData);
+                document.getElementById('winrate-core-tbody').innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-500 font-bold">⚠️ 資料格式錯誤！請確定有將最新的 back.py 推送到伺服器，或「隨便切換一下上方的球數」來清除快取。</td></tr>`;
             }
         }
 
